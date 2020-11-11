@@ -21,11 +21,11 @@ global null:="",sec:=1000,min:=60*sec,hour:=60*min
 class script
 {
 	name        := ""
-    version     := ""
-    author      := ""
-    email       := ""
-    homepage    := ""
-    conf        := ""
+	version     := ""
+	author      := ""
+	email       := ""
+	homepage    := ""
+	conf        := ""
 
 	/**
 	 * Function: Update
@@ -88,7 +88,7 @@ class script
 			return ERR_CURRENTVER
 		else
 		{
-		; If new version ask user what to do
+			; If new version ask user what to do
 			; Yes/No | Icon Question | System Modal
 			msgbox % 0x4 + 0x20 + 0x1000
 				   , % "New Update Available"
@@ -105,13 +105,13 @@ class script
 			filecreatedir % tmpDir := a_temp "\" regexreplace(a_scriptname, "\..*$")
 			filecreatedir % zipDir := tmpDir "\uzip"
 
-		; Create lock file
+			; Create lock file
 			fileappend % a_now, % lockFile := tmpDir "\lock"
 
-		; Download zip file
+			; Download zip file
 			urldownloadtofile % rfile, % tmpDir "\temp.zip"
 
-		; Extract zip file to temporal folder
+			; Extract zip file to temporal folder
 			oShell := ComObjCreate("Shell.Application")
 			oDir := oShell.NameSpace(zipDir), oZip := oShell.NameSpace(tmpDir "\temp.zip")
 			oDir.CopyHere(oZip.Items), oShell := oDir := oZip := ""
@@ -126,7 +126,7 @@ class script
 			* Run main script
 			* EOF
 			*******************************************************
-			*/			
+			*/
 			if (a_iscompiled){
 				tmpBatch =
 				(Ltrim
@@ -135,7 +135,7 @@ class script
 					timeout /t 10
 					goto lock
 					:continue
-					
+
 					xcopy "%zipDir%\*.*" "%a_scriptdir%\" /E /C /I /Q /R /K /Y
 					if exist "%a_scriptfullpath%" cmd /C "%a_scriptfullpath%"
 
@@ -187,5 +187,5 @@ class script
 	*
 	*/
 	splash(img){
-	 }
+	}
 }
