@@ -174,16 +174,18 @@ class script
 		exitapp
 	}
 
-		; [script/batch contents]
-		; Wait for lock file to be released
-		; Sleep for 500ms just in case
-		; Copy all files to current script directory
-		; Cleanup temporal files
-		; Run main script
-		; EOF
+	/**
+	* Function: Autostart
+	*
+	*/
+	autostart(status){
 
-		; Run temporal update script
-		; Delete lock file
-		; Stop current script
+	}
+
+	/**
+	* Function: Splash
+	*
+	*/
+	splash(img){
 	 }
 }
