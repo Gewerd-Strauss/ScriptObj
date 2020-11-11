@@ -50,19 +50,129 @@ class script
 	 * For more information about SemVer and its specs click here: <https://semver.org/>
 	 */
 	update(vfile, rfile){
-		; Check if we are connected to the internet
-		; Download remote version file
-		; Save information to variable
-		; Compare against current stated version
-		; If new version ask user what to do
-		; Create lock file
-		; Download zip file
-		; Extract zip file to temporal folder
+		; Error Codes
+		static codes := "ERR_INVALIDVFILE|ERR_INVALIDRFILE|ERR_NOCONNECT|ERR_NORESPONSE|"
+					 .  "ERR_CURRENTVER|ERR_MSGTIMEOUT|ERR_USRCANCEL"
 
-		; if is compiled
-		 	; Create batch file
-		; else
-			; Create script file
+		loop parse, codes, |
+			%a_loopfield% := a_index
+
+		; A URL is expected in this parameter, we just perform a basic check
+		; TODO make a more robust match
+		if (!regexmatch(vfile, "^((http(s)?|ftp):\/\/)?(([a-z0-9_\-]+\.)*)"))
+			return ERR_INVALIDVFILE
+
+		; This function expects a ZIP file
+		if (!regexmatch(rfile, "\.zip"))
+			return ERR_INVALIDRFILE
+
+		; Check if we are connected to the internet
+		runwait %a_comspec% /c "Ping -n 2 google.com" ,, Hide
+		if (errorlevel)
+		 	return ERR_NOCONNECT
+
+		; Download remote version file
+		http := comobjcreate("WinHttp.WinHttpRequest.5.1")
+		http.Open("GET", vfile, true)
+		http.Send(), http.WaitForResponse()
+
+		if !(http.responseText)
+			return ERR_NORESPONSE
+
+		; Make sure SemVer is used
+		regexmatch(this.version, "\d+\.\d+\.\d+", loVersion)
+		regexmatch(http.responseText, "\d+\.\d+\.\d+", remVersion)
+
+		; Compare against current stated version
+		if (loVersion >= remVersion)
+			return ERR_CURRENTVER
+		else
+		{
+		; If new version ask user what to do
+			; Yes/No | Icon Question | System Modal
+			msgbox % 0x4 + 0x20 + 0x1000
+				   , % "New Update Available"
+				   , % "There is a new update available for this application.`n"
+					 . "Do you wish to upgrade to v" remVersion "?"
+				   , 10	; timeout
+
+			ifmsgbox timeout
+				return ERR_MSGTIMEOUT
+			ifmsgbox no
+				return ERR_USRCANCEL
+
+			; Create temporal dirs
+			filecreatedir % tmpDir := a_temp "\" regexreplace(a_scriptname, "\..*$")
+			filecreatedir % zipDir := tmpDir "\uzip"
+
+		; Create lock file
+			fileappend % a_now, % lockFile := tmpDir "\lock"
+
+		; Download zip file
+			urldownloadtofile % rfile, % tmpDir "\temp.zip"
+
+		; Extract zip file to temporal folder
+			oShell := ComObjCreate("Shell.Application")
+			oDir := oShell.NameSpace(zipDir), oZip := oShell.NameSpace(tmpDir "\temp.zip")
+			oDir.CopyHere(oZip.Items), oShell := oDir := oZip := ""
+
+			filedelete % tmpDir "\temp.zip"
+
+			/*
+			******************************************************
+			* Wait for lock file to be released
+			* Copy all files to current script directory
+			* Cleanup temporal files
+			* Run main script
+			* EOF
+			*******************************************************
+			*/			
+			if (a_iscompiled){
+				tmpBatch =
+				(Ltrim
+					:lock
+					if not exist "%lockFile%" goto continue
+					timeout /t 10
+					goto lock
+					:continue
+					
+					xcopy "%zipDir%\*.*" "%a_scriptdir%\" /E /C /I /Q /R /K /Y
+					if exist "%a_scriptfullpath%" cmd /C "%a_scriptfullpath%"
+
+					cmd /C "rmdir "%tmpDir%" /S /Q"
+					exit
+				)
+				fileappend % tmpBatch, % tmpDir "\update.bat"
+				run % a_comspec " /c """ tmpDir "\update.bat""",, hide
+			}
+			else
+			{
+				tmpScript =
+				(Ltrim
+					while (fileExist("%lockFile%"))
+						sleep 10
+
+					filecopy %zipDir%\*, %a_scriptdir%, true
+					fileremovedir %tmpDir%, true
+
+					if (fileExist("%a_scriptfullpath%"))
+						run %a_scriptfullpath%
+					else
+						msgbox `% 0x10 + 0x1000
+							, "Update Error"
+							, "There was an error while running the updated version.``n"
+							. "Try to run the program manually."
+							, 10
+						exitapp
+				)
+				fileappend % tmpScript, % tmpDir "\update.ahk"
+				run % a_ahkpath " " tmpDir "\update.ahk"
+			}
+		}
+
+		filedelete % lockFile
+		exitapp
+	}
 
 		; [script/batch contents]
 		; Wait for lock file to be released
