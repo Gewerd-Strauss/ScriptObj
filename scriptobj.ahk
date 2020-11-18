@@ -270,6 +270,5 @@ class script
 			OutputDebug, %msg%
 		else if (script.sdbg)
 			FileAppend, %msg%`n, % script.dbgFile
-		}
 	}
 }
