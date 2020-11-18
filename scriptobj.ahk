@@ -35,9 +35,9 @@ class script
 	 *
 	 * Parameters:
 	 * vfile	-	Version File
-	 *				This is the remote version file to be validated against.
+	 *				Remote version file to be validated against.
 	 * rfile	-	Remote File
-	 *				This is the remote script file to be downloaded and installed if a new version is found.
+	 *				Remote script file to be downloaded and installed if a new version is found.
 	 *				It should be a zip file that will be unzipped by the function
 	 *
 	 * Notes:
@@ -66,6 +66,7 @@ class script
 		if (!regexmatch(rfile, "\.zip"))
 			return ERR_INVALIDRFILE
 
+		Progress, 50, 50/100, % "Checking for updates", % "Updating"
 		; Check if we are connected to the internet
 		runwait %a_comspec% /c "Ping -n 2 google.com" ,, Hide
 		if (errorlevel)
@@ -170,6 +171,8 @@ class script
 			}
 		}
 
+		Progress, 100, 100/100, % "Checking for updates", % "Updating"
+		Progress, OFF
 		filedelete % lockFile
 		exitapp
 	}
