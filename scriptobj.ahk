@@ -192,3 +192,49 @@ class script
 		else
 			RegDelete, HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\Run, %A_ScriptName%
 	}
+
+	/**
+	* Function: Splash
+	* Shows a custom image as a splash screen with a simple fading animation
+	*
+	* Parameters:
+	* img 		-	Image file to be displayed
+	* speed 	-	How fast the fading animation will be. Higher value is faster.
+	* pause 	-	How long in seconds the image will be paused after fully displayed.
+	*/
+	splash(img="", speed=10, pause=2){
+		global
+
+		Gui, Splash: -Caption +LastFound +Border +AlwaysOnTop +Owner
+		$hwnd := WinExist(), alpha := 0
+		WinSet, Transparent, 0
+
+		Gui, Splash: add, Picture, x0 y0 vpicImage, % img
+		GuiControlGet, picImage, Splash:pos
+		Gui, Splash: show, w%picImageW% h%picImageH%
+
+		SetBatchLines 3
+		Loop, 255
+		{
+			if (alpha >= 255)
+				break
+			alpha += speed
+			WinSet, Transparent, %alpha%
+		}
+
+		; pause duration in seconds
+		sleep pause * 1000
+
+		Loop, 255
+		{
+			if (alpha <= 0)
+				break
+			alpha -= speed
+			WinSet, Transparent, %alpha%
+		}
+		SetBatchLines -1
+
+		Gui, Splash: destroy
+		return
+	}
+}
