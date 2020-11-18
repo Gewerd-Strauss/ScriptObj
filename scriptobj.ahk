@@ -25,7 +25,8 @@ class script
 	author      := ""
 	email       := ""
 	homepage    := ""
-	conf        := ""
+	sdbg		:= false
+	dbgFile     := ""
 
 	/**
 	 * Function: Update
@@ -239,5 +240,36 @@ class script
 
 		Gui, Splash: destroy
 		return
+	}
+
+	/**
+	* Funtion: Debug
+	* Sends formatted debug messages either to a file or debugger app
+	*
+	* Parameters:
+	* msg 			-	Message to be sent
+	* delimiter 	-	Which message delimiter to use. There are 3 tipes:
+	* 					specifying 1 would have a message *preceded* by a delimiter
+	* 					specifying 2 would have a message *followed* by a delimiter
+	* 					specifying 3 would have a message *enclosed* by delimiters
+	*/
+	debug(msg,delimiter = false){
+
+		static ft := true   ; First time
+
+		t := delimiter = 1 ? msg := "* ------------------------------------------`n" msg
+		t := delimiter = 2 ? msg := msg "`n* ------------------------------------------"
+		t := delimiter = 3 ? msg := "* ------------------------------------------`n" msg
+								 .  "`n* ------------------------------------------"
+
+		script.sdbg && ft ? (msg := "* ------------------------------------------`n"
+								 .  "* " script.name " Debug ON`n* " script.name "[Start]`n" msg
+								 , ft := 0)
+
+		if (script.sdbg && !script.dbgFile)
+			OutputDebug, %msg%
+		else if (script.sdbg)
+			FileAppend, %msg%`n, % script.dbgFile
+		}
 	}
 }
