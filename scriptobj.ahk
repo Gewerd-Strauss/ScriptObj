@@ -29,7 +29,7 @@ class script
 
 	/**
 	 * Function: Update
-	 * This function checks for the current script version
+	 * Checks for the current script version
 	 * Downloads the remote version information
 	 * Compares and automatically downloads the new script file and reloads the script.
 	 *
@@ -176,16 +176,19 @@ class script
 
 	/**
 	* Function: Autostart
+	* This Adds the current script to the autorun section for the current
+	* user.
 	*
+	* Parameters:
+	* status 	-	Autostart status
+	*				It can be either true or false.
+	*				Setting it to true would add the registry value.
+	*				Setting it to false would delete an existing registry value.
 	*/
 	autostart(status){
-
+		if (status)
+			RegWrite, REG_SZ, HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\Run, %A_ScriptName%
+																				, %A_ScriptFullPath%
+		else
+			RegDelete, HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\Run, %A_ScriptName%
 	}
-
-	/**
-	* Function: Splash
-	*
-	*/
-	splash(img){
-	}
-}
