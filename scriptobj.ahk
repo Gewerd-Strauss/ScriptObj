@@ -85,6 +85,9 @@ class script
 		regexmatch(this.version, "\d+\.\d+\.\d+", loVersion)
 		regexmatch(http.responseText, "\d+\.\d+\.\d+", remVersion)
 
+		Progress, 100, 100/100, % "Checking for updates", % "Updating"
+		Progress, OFF
+
 		; Compare against current stated version
 		if (loVersion >= remVersion)
 			return ERR_CURRENTVER
@@ -170,12 +173,9 @@ class script
 				fileappend % tmpScript, % tmpDir "\update.ahk"
 				run % a_ahkpath " " tmpDir "\update.ahk"
 			}
+			filedelete % lockFile
+			exitapp
 		}
-
-		Progress, 100, 100/100, % "Checking for updates", % "Updating"
-		Progress, OFF
-		filedelete % lockFile
-		exitapp
 	}
 
 	/**
