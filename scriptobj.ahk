@@ -52,8 +52,13 @@ class script
 	 */
 	update(vfile, rfile){
 		; Error Codes
-		static codes := "ERR_INVALIDVFILE|ERR_INVALIDRFILE|ERR_NOCONNECT|ERR_NORESPONSE|"
-					 .  "ERR_CURRENTVER|ERR_MSGTIMEOUT|ERR_USRCANCEL"
+		static	 ERR_INVALIDVFILE	:= 1
+				,ERR_INVALIDRFILE	:= 2
+				,ERR_NOCONNECT		:= 3
+				,ERR_NORESPONSE		:= 4
+				,ERR_CURRENTVER		:= 5
+				,ERR_MSGTIMEOUT		:= 6
+				,ERR_USRCANCEL		:= 7
 
 		loop parse, codes, |
 			%a_loopfield% := a_index
@@ -67,16 +72,24 @@ class script
 		if (!regexmatch(rfile, "\.zip"))
 			return ERR_INVALIDRFILE
 
-		Progress, 50, 50/100, % "Checking for updates", % "Updating"
 		; Check if we are connected to the internet
-		runwait %a_comspec% /c "Ping -n 2 google.com" ,, Hide
-		if (errorlevel)
+		http := comobjcreate("WinHttp.WinHttpRequest.5.1")
+		http.Open("GET", "https://www.google.com", true)
+		http.Send()
+		try
+			http.WaitForResponse(1)
+		catch e
+		{
+			msgbox % 0x40, % "No Internet Connection"
+						 , % "Checking for updates failed, probably because there is no intertet connection.`n`n" e.message
 		 	return ERR_NOCONNECT
+		}
+
+		Progress, 50, 50/100, % "Checking for updates", % "Updating"
 
 		; Download remote version file
-		http := comobjcreate("WinHttp.WinHttpRequest.5.1")
 		http.Open("GET", vfile, true)
-		http.Send(), http.WaitForResponse()
+		http.Send(), http.WaitForResponse(1)
 
 		if !(http.responseText)
 			return ERR_NORESPONSE
@@ -86,6 +99,7 @@ class script
 		regexmatch(http.responseText, "\d+\.\d+\.\d+", remVersion)
 
 		Progress, 100, 100/100, % "Checking for updates", % "Updating"
+		sleep 500 	; allow progress to update
 		Progress, OFF
 
 		; Compare against current stated version
