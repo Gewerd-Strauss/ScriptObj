@@ -89,7 +89,7 @@ class script
 
 		; Download remote version file
 		http.Open("GET", vfile, true)
-		http.Send(), http.WaitForResponse(1)
+		http.Send(), http.WaitForResponse()
 
 		if !(http.responseText)
 			return ERR_NORESPONSE
