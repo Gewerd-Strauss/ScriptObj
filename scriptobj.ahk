@@ -29,27 +29,27 @@ class script
 	dbgFile     := ""
 
 	/**
-	 * Function: Update
-	 * Checks for the current script version
-	 * Downloads the remote version information
-	 * Compares and automatically downloads the new script file and reloads the script.
-	 *
-	 * Parameters:
-	 * vfile	-	Version File
-	 *				Remote version file to be validated against.
-	 * rfile	-	Remote File
-	 *				Remote script file to be downloaded and installed if a new version is found.
-	 *				It should be a zip file that will be unzipped by the function
-	 *
-	 * Notes:
-	 * The versioning file should only contain a version string and nothing else.
-	 * The matching will be performed against a SemVer format and only the three
-	 * major components will be taken into account.
-	 *
-	 * e.g. '1.0.0'
-	 *
-	 * For more information about SemVer and its specs click here: <https://semver.org/>
-	 */
+		Function: Update
+		Checks for the current script version
+		Downloads the remote version information
+		Compares and automatically downloads the new script file and reloads the script.
+
+		Parameters:
+		vfile	-	Version File
+					Remote version file to be validated against.
+		rfile	-	Remote File
+					Remote script file to be downloaded and installed if a new version is found.
+					It should be a zip file that will be unzipped by the function
+
+		Notes:
+		The versioning file should only contain a version string and nothing else.
+		The matching will be performed against a SemVer format and only the three
+		major components will be taken into account.
+
+		e.g. '1.0.0'
+
+		For more information about SemVer and its specs click here: <https://semver.org/>
+	*/
 	update(vfile, rfile){
 		; Error Codes
 		static	 ERR_INVALIDVFILE	:= 1
@@ -193,15 +193,15 @@ class script
 	}
 
 	/**
-	* Function: Autostart
-	* This Adds the current script to the autorun section for the current
-	* user.
-	*
-	* Parameters:
-	* status 	-	Autostart status
-	*				It can be either true or false.
-	*				Setting it to true would add the registry value.
-	*				Setting it to false would delete an existing registry value.
+		Function: Autostart
+		This Adds the current script to the autorun section for the current
+		user.
+
+		Parameters:
+		status 	-	Autostart status
+					It can be either true or false.
+					Setting it to true would add the registry value.
+					Setting it to false would delete an existing registry value.
 	*/
 	autostart(status){
 		if (status)
@@ -212,13 +212,13 @@ class script
 	}
 
 	/**
-	* Function: Splash
-	* Shows a custom image as a splash screen with a simple fading animation
-	*
-	* Parameters:
-	* img 		-	Image file to be displayed
-	* speed 	-	How fast the fading animation will be. Higher value is faster.
-	* pause 	-	How long in seconds the image will be paused after fully displayed.
+		Function: Splash
+		Shows a custom image as a splash screen with a simple fading animation
+
+		Parameters:
+		img 		-	Image file to be displayed
+		speed 	-	How fast the fading animation will be. Higher value is faster.
+		pause 	-	How long in seconds the image will be paused after fully displayed.
 	*/
 	splash(img="", speed=10, pause=2){
 		global
@@ -257,15 +257,15 @@ class script
 	}
 
 	/**
-	* Funtion: Debug
-	* Sends formatted debug messages either to a file or debugger app
-	*
-	* Parameters:
-	* msg 			-	Message to be sent
-	* delimiter 	-	Which message delimiter to use. There are 3 tipes:
-	* 					specifying 1 would have a message *preceded* by a delimiter
-	* 					specifying 2 would have a message *followed* by a delimiter
-	* 					specifying 3 would have a message *enclosed* by delimiters
+		Funtion: Debug
+		Sends formatted debug messages either to a file or debugger app
+
+		Parameters:
+		msg 			-	Message to be sent
+		delimiter 		-	Which message delimiter to use. There are 3 tipes:
+							specifying 1 would have a message *preceded* by a delimiter
+							specifying 2 would have a message *followed* by a delimiter
+							specifying 3 would have a message *enclosed* by delimiters
 	*/
 	debug(msg,delimiter = false){
 
