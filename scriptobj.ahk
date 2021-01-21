@@ -20,13 +20,18 @@ global null:="",sec:=1000,min:=60*sec,hour:=60*min
 
 class script
 {
+	static DBG_NONE 	:= 0
+		  ,DBG_ERRORS 	:= 1
+		  ,DBG_WARNINGS := 2
+		  ,DBG_VERBOSE 	:= 3
+
 	name        := ""
 	version     := ""
 	author      := ""
 	email       := ""
 	homepage    := ""
-	sdbg		:= false
 	dbgFile     := ""
+	dbgLevel	:= this.DBG_NONE
 
 	/**
 		Function: Update
@@ -258,31 +263,38 @@ class script
 
 	/**
 		Funtion: Debug
-		Sends formatted debug messages either to a file or debugger app
+		Allows sending conditional debug messages to the debugger and a log file filtered
+		by the current debug level set on the object.
 
 		Parameters:
-		msg 			-	Message to be sent
-		delimiter 		-	Which message delimiter to use. There are 3 tipes:
-							specifying 1 would have a message *preceded* by a delimiter
-							specifying 2 would have a message *followed* by a delimiter
-							specifying 3 would have a message *enclosed* by delimiters
+		level 	-	Debug Level, which can be:
+					* this.DBG_NONE
+					* this.DBG_ERRORS
+					* this.DBG_WARNINGS
+					* this.DBG_VERBOSE
+					If you set the level for a particular message to *this.DBG_VERBOSE* this message
+					wont be shown when the class debug level is set to lower than that (e.g. *this.DBG_WARNINGS*).
+		label 	-	Message label, mainly used to show the name of the function or label that triggered the message
+		msg 	-	Arbitrary message that will be displayed on the debugger or logged to the log file
+		vars*	-	Aditional parameters that whill be shown as passed. Useful to show variable contents to the debugger.
+
+		Notes:
+		The point of this function is to have all your debug messages added to your script and filter them out
+		by just setting the object's dbgLevel variable once, which in turn would disable some types of messages.
 	*/
-	debug(msg,delimiter = false){
+	debug(level:=1, label:=">", msg:="", vars*)
+	{
+		if !this.dbglevel
+			return
 
-		static ft := true   ; First time
+		for i,var in vars
+			varline .= "|" var
 
-		t := delimiter = 1 ? msg := "* ------------------------------------------`n" msg
-		t := delimiter = 2 ? msg := msg "`n* ------------------------------------------"
-		t := delimiter = 3 ? msg := "* ------------------------------------------`n" msg
-								 .  "`n* ------------------------------------------"
+		dbgMessage := label ">" msg "`n" varline
 
-		script.sdbg && ft ? (msg := "* ------------------------------------------`n"
-								 .  "* " script.name " Debug ON`n* " script.name "[Start]`n" msg
-								 , ft := 0)
-
-		if (script.sdbg && !script.dbgFile)
-			OutputDebug, %msg%
-		else if (script.sdbg)
-			FileAppend, %msg%`n, % script.dbgFile
+		if (level <= this.dbglevel)
+			outputdebug % dbgMessage
+		if (this.dbgFile)
+			FileAppend, % dbgMessage, % this.dbgFile
 	}
 }
