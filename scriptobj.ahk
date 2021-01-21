@@ -55,7 +55,8 @@ class script
 
 		For more information about SemVer and its specs click here: <https://semver.org/>
 	*/
-	update(vfile, rfile){
+	update(vfile, rfile)
+	{
 		; Error Codes
 		static	 ERR_INVALIDVFILE	:= 1
 				,ERR_INVALIDRFILE	:= 2
@@ -208,7 +209,8 @@ class script
 					Setting it to true would add the registry value.
 					Setting it to false would delete an existing registry value.
 	*/
-	autostart(status){
+	autostart(status)
+	{
 		if (status)
 			RegWrite, REG_SZ, HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\Run, %A_ScriptName%
 																				, %A_ScriptFullPath%
@@ -221,11 +223,12 @@ class script
 		Shows a custom image as a splash screen with a simple fading animation
 
 		Parameters:
-		img 		-	Image file to be displayed
+		img 	-	Image file to be displayed
 		speed 	-	How fast the fading animation will be. Higher value is faster.
 		pause 	-	How long in seconds the image will be paused after fully displayed.
 	*/
-	splash(img="", speed=10, pause=2){
+	splash(img:="", speed:=10, pause:=2)
+	{
 		global
 
 		Gui, Splash: -Caption +LastFound +Border +AlwaysOnTop +Owner
