@@ -16,7 +16,7 @@
  */
 
 ; SuperGlobal variables
-global null:="",sec:=1000,min:=60*sec,hour:=60*min
+global sec:=1000,min:=60*sec,hour:=60*min
 
 class script
 {
