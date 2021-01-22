@@ -25,13 +25,14 @@ class script
 		  ,DBG_WARNINGS := 2
 		  ,DBG_VERBOSE 	:= 3
 
-	name        := ""
-	version     := ""
-	author      := ""
-	email       := ""
-	homepage    := ""
-	dbgFile     := ""
-	dbgLevel	:= this.DBG_NONE
+	scriptname	:= ""
+	version		:= ""
+	author 		:= ""
+	email 		:= ""
+	homepage 	:= ""
+	donateLink	:= ""
+	dbgFile 	:= ""
+	dbgLevel 	:= this.DBG_NONE
 
 	/**
 		Function: Update
@@ -223,9 +224,9 @@ class script
 		Shows a custom image as a splash screen with a simple fading animation
 
 		Parameters:
-		img 	-	Image file to be displayed
-		speed 	-	How fast the fading animation will be. Higher value is faster.
-		pause 	-	How long in seconds the image will be paused after fully displayed.
+		img 	(opt)	-	Image file to be displayed
+		speed 	(opt)	-	How fast the fading animation will be. Higher value is faster.
+		pause 	(opt)	-	How long in seconds the image will be paused after fully displayed.
 	*/
 	splash(img:="", speed:=10, pause:=2)
 	{
@@ -299,5 +300,99 @@ class script
 			outputdebug % dbgMessage
 		if (this.dbgFile)
 			FileAppend, % dbgMessage, % this.dbgFile
+	}
+
+	/**
+		Function: About
+		Shows a quick HTML Window based on the object's variable information
+
+		Parameters:
+		scriptName 	(opt)	-	Name of the script which will be shown as the title of the window and the main header
+		version		(opt)	-	Script Version in SimVer format, a "v" will be added automatically to this value
+		author 		(opt)	-	Name of the author of the script
+		homepage 	(opt)	-	Main website for the script
+		donateLink	(opt)	-	Link to a donation site
+		email		(opt)	-	Developer email
+
+		Notes:
+		The function will try to infer the paramters if they are blank by checking
+		the class variables if provided. This allows you to set all information once
+		when instatiating the class, and the about GUI will be filled out automatically.
+	*/
+	about(scriptName:="", version:="", author:="", homepage:="", donateLink:="", email:="")
+	{
+		static doc
+
+		if (!scriptName)
+			scriptName := this.scriptname
+		if (!version)
+			version := this.version
+		if (!author)
+			author := this.author
+		if (!homepage)
+			homepage := this.homepage
+		if (!donateLink)
+			donateLink := this.donateLink
+		if (!email)
+			email := this.email
+
+		homepage 	:= RegExReplace(homepage, "http(s)?:\/\/")
+		donateLink 	:= RegExReplace(donateLink, "http(s)?:\/\/")
+
+		if (donateLink)
+		{
+			donateSection =
+			(
+				<div class="donate">
+					<p>If you like this tool please consider <a href="https://%donateLink%">donating</a>.</p>
+				</div>
+			)
+		}
+
+		html =
+		(
+			<!DOCTYPE html>
+			<html lang="en" dir="ltr">
+				<head>
+					<meta charset="utf-8">
+					<meta http-equiv="X-UA-Compatible" content="IE=edge">
+					<style media="screen">
+						.top {
+							text-align:center;
+						}
+						.top h2 {
+							color:#2274A5;
+						}
+						.donate {
+							color:#E83F6F;
+							text-align:center;
+							font-weight:bold;
+							font-size:small;
+							margin: 20px;
+						}
+						p {
+							margin: 0px;
+						}
+					</style>
+				</head>
+				<body>
+					<div class="top">
+						<h2>%scriptName%</h2>
+						<hr>
+						<p>v%version%</p>
+						<p>%author%</p>
+						<p><a href="https://%homepage%" target="_blank">%homepage%</a></p>
+					</div>
+					%donateSection%
+					<hr>
+				</body>
+			</html>
+		)
+		gui aboutscript:new, +alwaysontop +toolwindow, % "About " this.name
+		gui margin, 0
+		gui color, white
+		gui add, activex, w300 h220 vdoc, htmlfile
+		doc.write(html)
+		gui show
 	}
 }
