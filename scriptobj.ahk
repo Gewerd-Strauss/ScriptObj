@@ -141,7 +141,7 @@ class script
 			}
 		}
 
-		if (newversion)
+		if (!newversion)
 			throw {code: ERR_CURRENTVER, msg: "You are using the latest version"}
 		else
 		{
