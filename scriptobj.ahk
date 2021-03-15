@@ -63,12 +63,10 @@ class script
 				,ERR_INVALIDRFILE	:= 2
 				,ERR_NOCONNECT		:= 3
 				,ERR_NORESPONSE		:= 4
-				,ERR_CURRENTVER		:= 5
-				,ERR_MSGTIMEOUT		:= 6
-				,ERR_USRCANCEL		:= 7
-
-		loop parse, codes, |
-			%a_loopfield% := a_index
+				,ERR_INVALIDVER		:= 5
+				,ERR_CURRENTVER		:= 6
+				,ERR_MSGTIMEOUT		:= 7
+				,ERR_USRCANCEL		:= 8
 
 		; A URL is expected in this parameter, we just perform a basic check
 		; TODO make a more robust match
