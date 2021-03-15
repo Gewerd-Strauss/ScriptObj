@@ -71,11 +71,11 @@ class script
 		; A URL is expected in this parameter, we just perform a basic check
 		; TODO make a more robust match
 		if (!regexmatch(vfile, "^((http(s)?|ftp):\/\/)?(([a-z0-9_\-]+\.)*)"))
-			return ERR_INVALIDVFILE
+			throw {code: ERR_INVALIDVFILE, msg: "Invalid URL`n`nThe version file parameter must point to a valid URL."}
 
 		; This function expects a ZIP file
 		if (!regexmatch(rfile, "\.zip"))
-			return ERR_INVALIDRFILE
+			throw {code: ERR_INVALIDRFILE, msg: "Invalid Zip`n`nThe remote file parameter must point to a zip file."}
 
 		; Check if we are connected to the internet
 		http := comobjcreate("WinHttp.WinHttpRequest.5.1")
@@ -84,11 +84,7 @@ class script
 		try
 			http.WaitForResponse(1)
 		catch e
-		{
-			msgbox % 0x40, % "No Internet Connection"
-						 , % "Checking for updates failed, probably because there is no intertet connection.`n`n" e.message
-		 	return ERR_NOCONNECT
-		}
+			throw {code: ERR_NOCONNECT, msg: e.message}
 
 		Progress, 50, 50/100, % "Checking for updates", % "Updating"
 
@@ -97,9 +93,9 @@ class script
 		http.Send(), http.WaitForResponse()
 
 		if !(http.responseText)
-			return ERR_NORESPONSE
+			throw {code: ERR_NORESPONSE, msg: "There was an error trying to download the ZIP file.`n"
+											. "The server did not respond."}
 
-		; Make sure SemVer is used
 		regexmatch(this.version, "\d+\.\d+\.\d+", loVersion)
 		regexmatch(http.responseText, "\d+\.\d+\.\d+", remVersion)
 
@@ -107,9 +103,13 @@ class script
 		sleep 500 	; allow progress to update
 		Progress, OFF
 
+		; Make sure SemVer is used
+		if (!loVersion || !remVersion)
+			throw {code: ERR_INVALIDVER, msg: "Invalid version.`nThis function works with SemVer. "
+											. "For more information refer to the documentation in the function"}
+
 		; Compare against current stated version
-		if (loVersion >= remVersion)
-			return ERR_CURRENTVER
+			throw {code: ERR_CURRENTVER, msg: "You are using the latest version"}
 		else
 		{
 			; If new version ask user what to do
@@ -121,9 +121,9 @@ class script
 				   , 10	; timeout
 
 			ifmsgbox timeout
-				return ERR_MSGTIMEOUT
+				throw {code: ERR_MSGTIMEOUT, msg: "The Message Box timed out."}
 			ifmsgbox no
-				return ERR_USRCANCEL
+				throw {code: ERR_USRCANCEL, msg: "The user pressed the cancel button."}
 
 			; Create temporal dirs
 			filecreatedir % tmpDir := a_temp "\" regexreplace(a_scriptname, "\..*$")
