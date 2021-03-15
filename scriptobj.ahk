@@ -115,10 +115,10 @@ class script
 			; If new version ask user what to do
 			; Yes/No | Icon Question | System Modal
 			msgbox % 0x4 + 0x20 + 0x1000
-				   , % "New Update Available"
-				   , % "There is a new update available for this application.`n"
-					 . "Do you wish to upgrade to v" remVersion "?"
-				   , 10	; timeout
+				 , % "New Update Available"
+				 , % "There is a new update available for this application.`n"
+				   . "Do you wish to upgrade to v" remVersion "?"
+				 , 10	; timeout
 
 			ifmsgbox timeout
 				throw {code: ERR_MSGTIMEOUT, msg: "The Message Box timed out."}
@@ -183,10 +183,10 @@ class script
 						run %a_scriptfullpath%
 					else
 						msgbox `% 0x10 + 0x1000
-							, "Update Error"
-							, "There was an error while running the updated version.``n"
-							. "Try to run the program manually."
-							, 10
+							 , `% "Update Error"
+							 , `% "There was an error while running the updated version.``n"
+								. "Try to run the program manually."
+							 ,  10
 						exitapp
 				)
 				fileappend % tmpScript, % tmpDir "\update.ahk"
