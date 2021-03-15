@@ -109,6 +109,28 @@ class script
 											. "For more information refer to the documentation in the function"}
 
 		; Compare against current stated version
+		ver1 := strsplit(loVersion, ".")
+		ver2 := strsplit(remVersion, ".")
+
+		for i1,num1 in ver1
+		{
+			for i2,num2 in ver2
+			{
+				if (newversion)
+					break
+
+				if (i1 == i2)
+					if (num2 > num1)
+					{
+						newversion := true
+						break
+					}
+					else
+						newversion := false
+			}
+		}
+
+		if (newversion)
 			throw {code: ERR_CURRENTVER, msg: "You are using the latest version"}
 		else
 		{
