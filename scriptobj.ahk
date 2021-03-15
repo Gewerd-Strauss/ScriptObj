@@ -18,6 +18,17 @@
 ; SuperGlobal variables
 global sec:=1000,min:=60*sec,hour:=60*min
 
+; global script := {base			: script
+; 				 ,name			: regexreplace(A_ScriptName, "\.\w+")
+; 				 ,version		: "0"
+; 				 ,author		: ""
+; 				 ,email			: ""
+; 				 ,homepagetext	: ""
+; 				 ,homepagelink	: ""
+; 				 ,resfolder		: A_AppData "\" regexreplace(A_ScriptName, "\.\w+") "\res"
+; 				 ,iconfile		: A_AppData "\" regexreplace(A_ScriptName, "\.\w+") "\res\main.ico"
+; 				 ,config 		: A_AppData "\" regexreplace(A_ScriptName, "\.\w+") "\settings.ini"}
+
 class script
 {
 	static DBG_NONE 	:= 0
