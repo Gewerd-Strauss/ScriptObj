@@ -411,11 +411,21 @@ class script
 				</body>
 			</html>
 		)
-		gui aboutscript:new, +alwaysontop +toolwindow, % "About " this.name
+
+		btnxPos := 300/2 - 75/2
+		axHight := donateLink ? 16 : 12
+
+		gui aboutScript:new, +alwaysontop +toolwindow, % "About " this.name
 		gui margin, 0
 		gui color, white
 		gui add, activex, w300 h220 vdoc, htmlfile
+		gui add, button, w75 x%btnxPos% gaboutClose, % "Close"
 		doc.write(html)
 		gui show
+		return
+
+		aboutClose:
+			gui aboutScript:destroy
+		return
 	}
 }
