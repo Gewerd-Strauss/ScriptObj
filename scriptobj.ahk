@@ -247,10 +247,10 @@ class script
 	autostart(status)
 	{
 		if (status)
-			RegWrite, REG_SZ, HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\Run, %A_ScriptName%
-																				, %A_ScriptFullPath%
+			regwrite, reg_sz, hkcu\software\microsoft\windows\currentversion\run, %a_scriptname%
+																				, %a_scriptfullpath%
 		else
-			RegDelete, HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\Run, %A_ScriptName%
+			regdelete, hkcu\software\microsoft\windows\currentversion\run, %a_scriptname%
 	}
 
 	/**
@@ -266,36 +266,36 @@ class script
 	{
 		global
 
-		Gui, Splash: -Caption +LastFound +Border +AlwaysOnTop +Owner
-		$hwnd := WinExist(), alpha := 0
-		WinSet, Transparent, 0
+		gui, splash: -caption +lastfound +border +alwaysontop +owner
+		$hwnd := winexist(), alpha := 0
+		winset, transparent, 0
 
-		Gui, Splash: add, Picture, x0 y0 vpicImage, % img
-		GuiControlGet, picImage, Splash:pos
-		Gui, Splash: show, w%picImageW% h%picImageH%
+		gui, splash: add, picture, x0 y0 vpicimage, % img
+		guicontrolget, picimage, splash:pos
+		gui, splash: show, w%picimagew% h%picimageh%
 
-		SetBatchLines 3
-		Loop, 255
+		setbatchlines 3
+		loop, 255
 		{
 			if (alpha >= 255)
 				break
 			alpha += speed
-			WinSet, Transparent, %alpha%
+			winset, transparent, %alpha%
 		}
 
 		; pause duration in seconds
 		sleep pause * 1000
 
-		Loop, 255
+		loop, 255
 		{
 			if (alpha <= 0)
 				break
 			alpha -= speed
-			WinSet, Transparent, %alpha%
+			winset, transparent, %alpha%
 		}
-		SetBatchLines -1
+		setbatchlines -1
 
-		Gui, Splash: destroy
+		gui, splash:destroy
 		return
 	}
 
