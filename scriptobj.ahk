@@ -2,10 +2,11 @@
  * =============================================================================================== *
  * @Author           : RaptorX   <graptorx@gmail.com>
  * @Script Name      : Script Object
- * @Script Version   : 0.1.0
+ * @Script Version   : 0.12.7
  * @Homepage         :
  *
  * @Creation Date    : November 09, 2020
+ * @Modification Date: March 15, 2021
  *
  * @Description      :
  * -------------------
