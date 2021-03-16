@@ -350,25 +350,17 @@ class script
 		the class variables if provided. This allows you to set all information once
 		when instatiating the class, and the about GUI will be filled out automatically.
 	*/
-	about(scriptName:="", version:="", author:="", homepage:="", donateLink:="", email:="")
+	about(scriptName:="", version:="", author:="", homepagetext:="", homepagelink:="", donateLink:="", email:="")
 	{
 		static doc
 
-		if (!scriptName)
-			scriptName := this.scriptname
-		if (!version)
-			version := this.version
-		if (!author)
-			author := this.author
-		if (!homepage)
-			homepage := this.homepage
-		if (!donateLink)
-			donateLink := this.donateLink
-		if (!email)
-			email := this.email
-
-		homepage 	:= RegExReplace(homepage, "http(s)?:\/\/")
-		donateLink 	:= RegExReplace(donateLink, "http(s)?:\/\/")
+		scriptName := scriptName ? scriptName : this.name
+		version := version ? version : this.version
+		author := author ? author : this.author
+		homepagetext := homepagetext ? homepagetext : RegExReplace(this.homepagetext, "http(s)?:\/\/")
+		homepagelink := homepagelink ? homepagelink : RegExReplace(this.homepagelink, "http(s)?:\/\/")
+		donateLink := donateLink ? donateLink : RegExReplace(this.donateLink, "http(s)?:\/\/")
+		email := email ? email : this.email
 
 		if (donateLink)
 		{
