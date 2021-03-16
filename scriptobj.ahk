@@ -385,6 +385,7 @@ class script
 						}
 						.top h2 {
 							color:#2274A5;
+							margin-bottom: 5px;
 						}
 						.donate {
 							color:#E83F6F;
@@ -401,10 +402,10 @@ class script
 				<body>
 					<div class="top">
 						<h2>%scriptName%</h2>
-						<hr>
 						<p>v%version%</p>
+						<hr>
 						<p>%author%</p>
-						<p><a href="https://%homepage%" target="_blank">%homepage%</a></p>
+						<p><a href="https://%homepagelink%" target="_blank">%homepagetext%</a></p>
 					</div>
 					%donateSection%
 					<hr>
