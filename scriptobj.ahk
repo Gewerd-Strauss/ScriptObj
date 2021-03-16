@@ -36,14 +36,17 @@ class script
 		  ,DBG_WARNINGS := 2
 		  ,DBG_VERBOSE 	:= 3
 
-	scriptname	:= ""
-	version		:= ""
-	author 		:= ""
-	email 		:= ""
-	homepage 	:= ""
-	donateLink	:= ""
-	dbgFile 	:= ""
-	dbgLevel 	:= this.DBG_NONE
+	name 			:= ""
+	version 		:= ""
+	author 			:= ""
+	email 			:= ""
+	homepagetext 	:= ""
+	homepagelink	:= ""
+	resfolder 		:= ""
+	iconfile 		:= ""
+	config 			:= ""
+	dbgFile 		:= ""
+	dbgLevel 		:= this.DBG_NONE
 
 	/**
 		Function: Update
@@ -338,12 +341,13 @@ class script
 		Shows a quick HTML Window based on the object's variable information
 
 		Parameters:
-		scriptName 	(opt)	-	Name of the script which will be shown as the title of the window and the main header
-		version		(opt)	-	Script Version in SimVer format, a "v" will be added automatically to this value
-		author 		(opt)	-	Name of the author of the script
-		homepage 	(opt)	-	Main website for the script
-		donateLink	(opt)	-	Link to a donation site
-		email		(opt)	-	Developer email
+		scriptName 		(opt)	-	Name of the script which will be shown as the title of the window and the main header
+		version			(opt)	-	Script Version in SimVer format, a "v" will be added automatically to this value
+		author 			(opt)	-	Name of the author of the script
+		homepagetext	(opt)	-	Display text for the script website
+		homepagelink	(opt)	-	Href link to that points to the scripts website (for pretty links and utm campaing codes)
+		donateLink		(opt)	-	Link to a donation site
+		email			(opt)	-	Developer email
 
 		Notes:
 		The function will try to infer the paramters if they are blank by checking
