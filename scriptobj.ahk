@@ -369,6 +369,7 @@ class script
 				<div class="donate">
 					<p>If you like this tool please consider <a href="https://%donateLink%">donating</a>.</p>
 				</div>
+				<hr>
 			)
 		}
 
@@ -408,7 +409,6 @@ class script
 						<p><a href="https://%homepagelink%" target="_blank">%homepagetext%</a></p>
 					</div>
 					%donateSection%
-					<hr>
 				</body>
 			</html>
 		)
@@ -419,7 +419,7 @@ class script
 		gui aboutScript:new, +alwaysontop +toolwindow, % "About " this.name
 		gui margin, 0
 		gui color, white
-		gui add, activex, w300 h220 vdoc, htmlfile
+		gui add, activex, w300 r%axHight% vdoc, htmlFile
 		gui add, button, w75 x%btnxPos% gaboutClose, % "Close"
 		doc.write(html)
 		gui show
