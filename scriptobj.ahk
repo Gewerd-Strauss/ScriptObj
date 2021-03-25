@@ -108,8 +108,11 @@ class script
 		http.Send(), http.WaitForResponse()
 
 		if !(http.responseText)
+		{
+			Progress, OFF
 			throw {code: ERR_NORESPONSE, msg: "There was an error trying to download the ZIP file.`n"
 											. "The server did not respond."}
+		}
 
 		regexmatch(this.version, "\d+\.\d+\.\d+", loVersion)
 		regexmatch(http.responseText, "\d+\.\d+\.\d+", remVersion)
