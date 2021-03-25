@@ -166,7 +166,7 @@ class script
 				throw {code: ERR_USRCANCEL, msg: "The user pressed the cancel button."}
 
 			; Create temporal dirs
-			ghubname := (InStr(rfile, "github") ? regexreplace(a_scriptname, "\..*$") "-latest" : "") "\*.*"
+			ghubname := (InStr(rfile, "github") ? regexreplace(a_scriptname, "\..*$") "-latest\" : "")
 			filecreatedir % tmpDir := a_temp "\" regexreplace(a_scriptname, "\..*$")
 			filecreatedir % zipDir := tmpDir "\uzip"
 
@@ -201,7 +201,7 @@ class script
 					goto lock
 					:continue
 
-					xcopy "%zipDir%\%ghubname%" "%a_scriptdir%\" /E /C /I /Q /R /K /Y
+					xcopy "%zipDir%\%ghubname%*.*" "%a_scriptdir%\" /E /C /I /Q /R /K /Y
 					if exist "%a_scriptfullpath%" cmd /C "%a_scriptfullpath%"
 
 					cmd /C "rmdir "%tmpDir%" /S /Q"
@@ -217,8 +217,8 @@ class script
 					while (fileExist("%lockFile%"))
 						sleep 10
 
-					filecopy %zipDir%\%ghubname%, %a_scriptdir%, true
-					fileremovedir %tmpDir%, true
+					FileCopyDir %zipDir%\%ghubname%, %a_scriptdir%, true
+					FileRemoveDir %tmpDir%, true
 
 					if (fileExist("%a_scriptfullpath%"))
 						run %a_scriptfullpath%
