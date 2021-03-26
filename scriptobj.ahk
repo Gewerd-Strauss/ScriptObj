@@ -85,7 +85,7 @@ class script
 
 		; A URL is expected in this parameter, we just perform a basic check
 		; TODO make a more robust match
-		if (!regexmatch(vfile, "^((http(s)?|ftp):\/\/)?(([a-z0-9_\-]+\.)*)"))
+		if (!regexmatch(vfile, "^((?:http(?:s)?|ftp):\/\/)?((?:[a-z0-9_\-]+\.)+.*$)"))
 			throw {code: ERR_INVALIDVFILE, msg: "Invalid URL`n`nThe version file parameter must point to a valid URL."}
 
 		; This function expects a ZIP file
