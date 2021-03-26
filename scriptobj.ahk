@@ -21,14 +21,16 @@ global sec:=1000,min:=60*sec,hour:=60*min
 
 ; global script := {base			: script
 ; 				 ,name			: regexreplace(A_ScriptName, "\.\w+")
-; 				 ,version		: "0"
+; 				 ,version		: "0.1.0"
 ; 				 ,author		: ""
 ; 				 ,email			: ""
 ; 				 ,homepagetext	: ""
 ; 				 ,homepagelink	: ""
-; 				 ,resfolder		: A_AppData "\" regexreplace(A_ScriptName, "\.\w+") "\res"
-; 				 ,iconfile		: A_AppData "\" regexreplace(A_ScriptName, "\.\w+") "\res\main.ico"
-; 				 ,config 		: A_AppData "\" regexreplace(A_ScriptName, "\.\w+") "\settings.ini"}
+; 				 ,donateLink	: "https://www.paypal.com/donate?hosted_button_id=MBT5HSD9G94N6"
+; 				 ,resfolder		: "\res"
+; 				 ,iconfile		: "\res\sct.ico"
+; 				 ,configfile	: "\settings.ini"
+; 				 ,configfolder	: ""}
 
 class script
 {
