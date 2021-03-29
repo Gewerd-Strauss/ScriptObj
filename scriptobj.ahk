@@ -2,7 +2,7 @@
  * =============================================================================================== *
  * @Author           : RaptorX   <graptorx@gmail.com>
  * @Script Name      : Script Object
- * @Script Version   : 0.12.7
+ * @Script Version   : 0.12.11
  * @Homepage         :
  *
  * @Creation Date    : November 09, 2020
@@ -21,14 +21,16 @@ global sec:=1000,min:=60*sec,hour:=60*min
 
 ; global script := {base			: script
 ; 				 ,name			: regexreplace(A_ScriptName, "\.\w+")
-; 				 ,version		: "0"
+; 				 ,version		: "0.1.0"
 ; 				 ,author		: ""
 ; 				 ,email			: ""
 ; 				 ,homepagetext	: ""
 ; 				 ,homepagelink	: ""
-; 				 ,resfolder		: A_AppData "\" regexreplace(A_ScriptName, "\.\w+") "\res"
-; 				 ,iconfile		: A_AppData "\" regexreplace(A_ScriptName, "\.\w+") "\res\main.ico"
-; 				 ,config 		: A_AppData "\" regexreplace(A_ScriptName, "\.\w+") "\settings.ini"}
+; 				 ,donateLink	: "https://www.paypal.com/donate?hosted_button_id=MBT5HSD9G94N6"
+; 				 ,resfolder		: "\res"
+; 				 ,iconfile		: "\res\sct.ico"
+; 				 ,configfile	: "\settings.ini"
+; 				 ,configfolder	: ""}
 
 class script
 {
@@ -85,7 +87,7 @@ class script
 
 		; A URL is expected in this parameter, we just perform a basic check
 		; TODO make a more robust match
-		if (!regexmatch(vfile, "^((http(s)?|ftp):\/\/)?(([a-z0-9_\-]+\.)*)"))
+		if (!regexmatch(vfile, "^((?:http(?:s)?|ftp):\/\/)?((?:[a-z0-9_\-]+\.)+.*$)"))
 			throw {code: ERR_INVALIDVFILE, msg: "Invalid URL`n`nThe version file parameter must point to a valid URL."}
 
 		; This function expects a ZIP file
@@ -108,8 +110,11 @@ class script
 		http.Send(), http.WaitForResponse()
 
 		if !(http.responseText)
+		{
+			Progress, OFF
 			throw {code: ERR_NORESPONSE, msg: "There was an error trying to download the ZIP file.`n"
 											. "The server did not respond."}
+		}
 
 		regexmatch(this.version, "\d+\.\d+\.\d+", loVersion)
 		regexmatch(http.responseText, "\d+\.\d+\.\d+", remVersion)
@@ -163,6 +168,7 @@ class script
 				throw {code: ERR_USRCANCEL, msg: "The user pressed the cancel button."}
 
 			; Create temporal dirs
+			ghubname := (InStr(rfile, "github") ? regexreplace(a_scriptname, "\..*$") "-latest\" : "")
 			filecreatedir % tmpDir := a_temp "\" regexreplace(a_scriptname, "\..*$")
 			filecreatedir % zipDir := tmpDir "\uzip"
 
@@ -197,7 +203,7 @@ class script
 					goto lock
 					:continue
 
-					xcopy "%zipDir%\*.*" "%a_scriptdir%\" /E /C /I /Q /R /K /Y
+					xcopy "%zipDir%\%ghubname%*.*" "%a_scriptdir%\" /E /C /I /Q /R /K /Y
 					if exist "%a_scriptfullpath%" cmd /C "%a_scriptfullpath%"
 
 					cmd /C "rmdir "%tmpDir%" /S /Q"
@@ -213,8 +219,8 @@ class script
 					while (fileExist("%lockFile%"))
 						sleep 10
 
-					filecopy %zipDir%\*, %a_scriptdir%, true
-					fileremovedir %tmpDir%, true
+					FileCopyDir %zipDir%\%ghubname%, %a_scriptdir%, true
+					FileRemoveDir %tmpDir%, true
 
 					if (fileExist("%a_scriptfullpath%"))
 						run %a_scriptfullpath%
