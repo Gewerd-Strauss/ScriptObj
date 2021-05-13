@@ -1,8 +1,9 @@
-;*******************************************************
-; Want a clear path for learning AutoHotkey? Take a look at our AutoHotkey Udemy courses. 
-; They're structured in a way to make learning AHK EASY
-; Right now you can  get a coupon code here: https://the-Automator.com/Learn
-;*******************************************************
+;******************************************************************************
+; Want a clear path for learning AutoHotkey?                                  *
+; Take a look at our AutoHotkey Udemy courses.                                *
+; They're structured in a way to make learning AHK EASY                       *
+; Right now you can  get a coupon code here: https://the-Automator.com/Learn  *
+;******************************************************************************
 
 /**
  * =============================================================================================== *
@@ -12,7 +13,7 @@
  * @Homepage         :
  *
  * @Creation Date    : November 09, 2020
- * @Modification Date: March 15, 2021
+ * @Modification Date: May 13, 2021
  *
  * @Description      :
  * -------------------
@@ -25,37 +26,37 @@
 ; SuperGlobal variables
 global sec:=1000,min:=60*sec,hour:=60*min
 
-; global script := {base			: script
-; 				 ,name			: regexreplace(A_ScriptName, "\.\w+")
-; 				 ,version		: "0.1.0"
-; 				 ,author		: ""
-; 				 ,email			: ""
-; 				 ,homepagetext	: ""
-; 				 ,homepagelink	: ""
-; 				 ,donateLink	: "https://www.paypal.com/donate?hosted_button_id=MBT5HSD9G94N6"
-; 				 ,resfolder		: "\res"
-; 				 ,iconfile		: "\res\sct.ico"
-; 				 ,configfile	: "\settings.ini"
-; 				 ,configfolder	: ""}
+; global script := {base         : script
+;                  ,nme          : regexreplace(A_ScriptName, "\.\w+")
+;                  ,version      : "0.1.0"
+;                  ,author       : ""
+;                  ,email        : ""
+;                  ,homepagetext : ""
+;                  ,homepagelink : ""
+;                  ,donateLink   : "https://www.paypal.com/donate?hosted_button_id=MBT5HSD9G94N6"
+;                  ,resfolder    : "\res"
+;                  ,iconfile     : "\res\sct.ico"
+;                  ,configfile   : "\settings.ini"
+;                  ,configfolder : ""}
 
 class script
 {
-	static DBG_NONE 	:= 0
-		  ,DBG_ERRORS 	:= 1
-		  ,DBG_WARNINGS := 2
-		  ,DBG_VERBOSE 	:= 3
+	static DBG_NONE := 0
+	,DBG_ERRORS     := 1
+	,DBG_WARNINGS   := 2
+	,DBG_VERBOSE    := 3
 
-	name 			:= ""
-	version 		:= ""
-	author 			:= ""
-	email 			:= ""
-	homepagetext 	:= ""
-	homepagelink	:= ""
-	resfolder 		:= ""
-	iconfile 		:= ""
-	config 			:= ""
-	dbgFile 		:= ""
-	dbgLevel 		:= this.DBG_NONE
+	name         := ""
+	version      := ""
+	author       := ""
+	email        := ""
+	homepagetext := ""
+	homepagelink := ""
+	resfolder    := ""
+	iconfile     := ""
+	config       := ""
+	dbgFile      := ""
+	dbgLevel     := this.DBG_NONE
 
 	/**
 		Function: Update
@@ -65,10 +66,10 @@ class script
 
 		Parameters:
 		vfile	-	Version File
-					Remote version file to be validated against.
+				Remote version file to be validated against.
 		rfile	-	Remote File
-					Remote script file to be downloaded and installed if a new version is found.
-					It should be a zip file that will be unzipped by the function
+				script file to be downloaded and installed if a new version is found.
+				should be a zip file that will be unzipped by the function
 
 		Notes:
 		The versioning file should only contain a version string and nothing else.
@@ -82,14 +83,14 @@ class script
 	update(vfile, rfile)
 	{
 		; Error Codes
-		static	 ERR_INVALIDVFILE	:= 1
-				,ERR_INVALIDRFILE	:= 2
-				,ERR_NOCONNECT		:= 3
-				,ERR_NORESPONSE		:= 4
-				,ERR_INVALIDVER		:= 5
-				,ERR_CURRENTVER		:= 6
-				,ERR_MSGTIMEOUT		:= 7
-				,ERR_USRCANCEL		:= 8
+		static ERR_INVALIDVFILE := 1
+		,ERR_INVALIDRFILE       := 2
+		,ERR_NOCONNECT          := 3
+		,ERR_NORESPONSE         := 4
+		,ERR_INVALIDVER         := 5
+		,ERR_CURRENTVER         := 6
+		,ERR_MSGTIMEOUT         := 7
+		,ERR_USRCANCEL          := 8
 
 		; A URL is expected in this parameter, we just perform a basic check
 		; TODO make a more robust match
