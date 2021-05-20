@@ -1,11 +1,4 @@
-﻿;******************************************************************************
-; Want a clear path for learning AutoHotkey?                                  *
-; Take a look at our AutoHotkey Udemy courses.                                *
-; They're structured in a way to make learning AHK EASY                       *
-; Right now you can  get a coupon code here: https://the-Automator.com/Learn  *
-;******************************************************************************
-
-/**
+﻿/**
  * =============================================================================================== *
  * @Author           : RaptorX <graptorx@gmail.com>
  * @Script Name      : Script Object
