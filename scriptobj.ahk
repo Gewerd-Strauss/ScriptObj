@@ -16,9 +16,6 @@
  * =============================================================================================== *
  */
 
-; SuperGlobal variables
-global sec:=1000,min:=60*sec,hour:=60*min
-
 ; global script := {base         : script
 ;                  ,nme          : regexreplace(A_ScriptName, "\.\w+")
 ;                  ,version      : "0.1.0"
