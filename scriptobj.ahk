@@ -11,7 +11,8 @@
  * @Description      :
  * -------------------
  * This is an object used to have a few common functions between scripts
- * Those are functions related to script information, upgrade and configuration.
+ * Those are functions and variables related to basic script information, 
+ * upgrade and configuration.
  *
  * ============================================================================ *
  */
@@ -24,10 +25,10 @@
 ;                  ,homepagetext : ""
 ;                  ,homepagelink : ""
 ;                  ,donateLink   : "https://www.paypal.com/donate?hosted_button_id=MBT5HSD9G94N6"
-;                  ,resfolder    : "\res"
-;                  ,iconfile     : "\res\sct.ico"
-;                  ,configfile   : "\settings.ini"
-;                  ,configfolder : ""}
+;                  ,resfolder    : A_ScriptDir "\res"
+;                  ,iconfile     : A_ScriptDir "\res\sct.ico"
+;                  ,configfile   : A_ScriptDir "\settings.ini"
+;                  ,configfolder : A_ScriptDir ""}
 
 class script
 {
