@@ -18,10 +18,12 @@
  */
 
 ; global script := {base         : script
-;                  ,nme          : regexreplace(A_ScriptName, "\.\w+")
+;                  ,name          : regexreplace(A_ScriptName, "\.\w+")
 ;                  ,version      : "0.1.0"
 ;                  ,author       : ""
 ;                  ,email        : ""
+;                  ,crtdate      : ""
+;                  ,moddate      : ""
 ;                  ,homepagetext : ""
 ;                  ,homepagelink : ""
 ;                  ,donateLink   : "https://www.paypal.com/donate?hosted_button_id=MBT5HSD9G94N6"
@@ -41,6 +43,8 @@ class script
 	version      := ""
 	author       := ""
 	email        := ""
+	crtdate      := ""
+	moddate      := ""
 	homepagetext := ""
 	homepagelink := ""
 	resfolder    := ""
