@@ -60,11 +60,11 @@ class script
 		Compares and automatically downloads the new script file and reloads the script.
 
 		Parameters:
-		vfile	-	Version File
-				Remote version file to be validated against.
-		rfile	-	Remote File
-				script file to be downloaded and installed if a new version is found.
-				should be a zip file that will be unzipped by the function
+		vfile - Version File
+		        Remote version file to be validated against.
+		rfile - Remote File
+		        Script file to be downloaded and installed if a new version is found.
+		        Should be a zip file that will be unzipped by the function
 
 		Notes:
 		The versioning file should only contain a version string and nothing else.
@@ -248,18 +248,23 @@ class script
 		user.
 
 		Parameters:
-		status 	-	Autostart status
-					It can be either true or false.
-					Setting it to true would add the registry value.
-					Setting it to false would delete an existing registry value.
+		status - Autostart status
+		         It can be either true or false.
+		         Setting it to true would add the registry value.
+		         Setting it to false would delete an existing registry value.
 	*/
 	Autostart(status)
 	{
 		if (status)
-			regwrite, reg_sz, hkcu\software\microsoft\windows\currentversion\run, %a_scriptname%
-																				, %a_scriptfullpath%
+		{
+			RegWrite, REG_SZ
+			        , HKCU\SOFTWARE\microsoft\windows\currentversion\run
+			        , %a_scriptname%
+			        , %a_scriptfullpath%
+		}
 		else
-			regdelete, hkcu\software\microsoft\windows\currentversion\run, %a_scriptname%
+			regdelete, HKCU\SOFTWARE\microsoft\windows\currentversion\run
+			         , %a_scriptname%
 	}
 
 	/**
@@ -267,9 +272,9 @@ class script
 		Shows a custom image as a splash screen with a simple fading animation
 
 		Parameters:
-		img 	(opt)	-	Image file to be displayed
-		speed 	(opt)	-	How fast the fading animation will be. Higher value is faster.
-		pause 	(opt)	-	How long in seconds the image will be paused after fully displayed.
+		img   (opt) - file to be displayed
+		speed (opt) - fast the fading animation will be. Higher value is faster.
+		pause (opt) - long in seconds the image will be paused after fully displayed.
 	*/
 	Splash(img:="", speed:=10, pause:=2)
 	{
@@ -314,16 +319,18 @@ class script
 		by the current debug level set on the object.
 
 		Parameters:
-		level 	-	Debug Level, which can be:
-					* this.DBG_NONE
-					* this.DBG_ERRORS
-					* this.DBG_WARNINGS
-					* this.DBG_VERBOSE
-					If you set the level for a particular message to *this.DBG_VERBOSE* this message
-					wont be shown when the class debug level is set to lower than that (e.g. *this.DBG_WARNINGS*).
-		label 	-	Message label, mainly used to show the name of the function or label that triggered the message
-		msg 	-	Arbitrary message that will be displayed on the debugger or logged to the log file
-		vars*	-	Aditional parameters that whill be shown as passed. Useful to show variable contents to the debugger.
+		level - Debug Level, which can be:
+		        * this.DBG_NONE
+		        * this.DBG_ERRORS
+		        * this.DBG_WARNINGS
+		        * this.DBG_VERBOSE
+		
+		If you set the level for a particular message to *this.DBG_VERBOSE* this message
+		wont be shown when the class debug level is set to lower than that (e.g. *this.DBG_WARNINGS*).
+		
+		label - Message label, mainly used to show the name of the function or label that triggered the message
+		msg   - Arbitrary message that will be displayed on the debugger or logged to the log file
+		vars* - Aditional parameters that whill be shown as passed. Useful to show variable contents to the debugger.
 
 		Notes:
 		The point of this function is to have all your debug messages added to your script and filter them out
@@ -350,13 +357,16 @@ class script
 		Shows a quick HTML Window based on the object's variable information
 
 		Parameters:
-		scriptName 		(opt)	-	Name of the script which will be shown as the title of the window and the main header
-		version			(opt)	-	Script Version in SimVer format, a "v" will be added automatically to this value
-		author 			(opt)	-	Name of the author of the script
-		homepagetext	(opt)	-	Display text for the script website
-		homepagelink	(opt)	-	Href link to that points to the scripts website (for pretty links and utm campaing codes)
-		donateLink		(opt)	-	Link to a donation site
-		email			(opt)	-	Developer email
+		scriptName   (opt) - Name of the script which will be
+		                     shown as the title of the window and the main header
+		version      (opt) - Script Version in SimVer format, a "v" 
+		                     will be added automatically to this value
+		author       (opt) - Name of the author of the script
+		homepagetext (opt) - Display text for the script website
+		homepagelink (opt) - Href link to that points to the scripts
+		                     website (for pretty links and utm campaing codes)
+		donateLink   (opt) - Link to a donation site
+		email        (opt) - Developer email
 
 		Notes:
 		The function will try to infer the paramters if they are blank by checking
