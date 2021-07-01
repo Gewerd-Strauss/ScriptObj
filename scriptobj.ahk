@@ -75,7 +75,7 @@ class script
 
 		For more information about SemVer and its specs click here: <https://semver.org/>
 	*/
-	update(vfile, rfile)
+	Update(vfile, rfile)
 	{
 		; Error Codes
 		static ERR_INVALIDVFILE := 1
@@ -253,7 +253,7 @@ class script
 					Setting it to true would add the registry value.
 					Setting it to false would delete an existing registry value.
 	*/
-	autostart(status)
+	Autostart(status)
 	{
 		if (status)
 			regwrite, reg_sz, hkcu\software\microsoft\windows\currentversion\run, %a_scriptname%
@@ -271,7 +271,7 @@ class script
 		speed 	(opt)	-	How fast the fading animation will be. Higher value is faster.
 		pause 	(opt)	-	How long in seconds the image will be paused after fully displayed.
 	*/
-	splash(img:="", speed:=10, pause:=2)
+	Splash(img:="", speed:=10, pause:=2)
 	{
 		global
 
@@ -329,7 +329,7 @@ class script
 		The point of this function is to have all your debug messages added to your script and filter them out
 		by just setting the object's dbgLevel variable once, which in turn would disable some types of messages.
 	*/
-	debug(level:=1, label:=">", msg:="", vars*)
+	Debug(level:=1, label:=">", msg:="", vars*)
 	{
 		if !this.dbglevel
 			return
@@ -363,7 +363,7 @@ class script
 		the class variables if provided. This allows you to set all information once
 		when instatiating the class, and the about GUI will be filled out automatically.
 	*/
-	about(scriptName:="", version:="", author:="", homepagetext:="", homepagelink:="", donateLink:="", email:="")
+	About(scriptName:="", version:="", author:="", homepagetext:="", homepagelink:="", donateLink:="", email:="")
 	{
 		static doc
 
