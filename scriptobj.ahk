@@ -1,4 +1,4 @@
-﻿/**
+/**
  * ============================================================================ *
  * @Author           : RaptorX <graptorx@gmail.com>
  * @Script Name      : Script Object
@@ -11,7 +11,7 @@
  * @Description      :
  * -------------------
  * This is an object used to have a few common functions between scripts
- * Those are functions and variables related to basic script information, 
+ * Those are functions and variables related to basic script information,
  * upgrade and configuration.
  *
  * ============================================================================ *
@@ -34,24 +34,24 @@
 
 class script
 {
-	static DBG_NONE := 0
-	,DBG_ERRORS     := 1
-	,DBG_WARNINGS   := 2
-	,DBG_VERBOSE    := 3
+	static DBG_NONE     := 0
+	      ,DBG_ERRORS   := 1
+	      ,DBG_WARNINGS := 2
+	      ,DBG_VERBOSE  := 3
 
-	name         := ""
-	version      := ""
-	author       := ""
-	email        := ""
-	crtdate      := ""
-	moddate      := ""
-	homepagetext := ""
-	homepagelink := ""
-	resfolder    := ""
-	iconfile     := ""
-	config       := ""
-	dbgFile      := ""
-	dbgLevel     := this.DBG_NONE
+	static name         := ""
+	      ,version      := ""
+	      ,author       := ""
+	      ,email        := ""
+	      ,crtdate      := ""
+	      ,moddate      := ""
+	      ,homepagetext := ""
+	      ,homepagelink := ""
+	      ,resfolder    := ""
+	      ,iconfile     := ""
+	      ,config       := ""
+	      ,dbgFile      := ""
+	      ,dbgLevel     := this.DBG_NONE
 
 	/**
 		Function: Update
