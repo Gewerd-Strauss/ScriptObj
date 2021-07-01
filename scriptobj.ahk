@@ -1,4 +1,4 @@
-/**
+﻿/**
  * ============================================================================ *
  * @Author           : RaptorX <graptorx@gmail.com>
  * @Script Name      : Script Object
@@ -52,6 +52,14 @@ class script
 	      ,config       := ""
 	      ,dbgFile      := ""
 	      ,dbgLevel     := this.DBG_NONE
+
+	static systemID := "C0D95HW8"
+	      ,licenseTypes := {51 : "Free"
+	                       ,62 : "Yearly"
+	                       ,59 : "Monthly"
+	                       ,57 : "LifeTime"
+	                       ,110: "CustomLifetime"
+	                       ,112: "CustomYearly"}
 
 	/**
 		Function: Update
@@ -452,4 +460,124 @@ class script
 			gui aboutScript:destroy
 		return
 	}
+	
+	/*
+		Function: GetLicense
+		Parameters:
+		Notes:
+	*/
+	GetLicense()
+	{
+		cleanName := RegexReplace(A_ScriptName, "\..*$")
+		for i,value in ["Type", "License"]
+			RegRead, %value%, % "HKCU\SOFTWARE\" cleanName, % value
+
+		return {"type"  : Type ? Type : false
+		       ,"number": License ? License : false}
+	}
+
+	/*
+		Function: SaveLicense
+		Parameters:
+		Notes:
+	*/
+	SaveLicense(licenseType, licenseNumber)
+	{
+		cleanName := RegexReplace(A_ScriptName, "\..*$")
+
+		Try
+		{
+			RegWrite, % "REG_SZ"
+			        , % "HKCU\SOFTWARE\" cleanName
+			        , % "Type", % licenseType
+			
+			RegWrite, % "REG_SZ"
+			        , % "HKCU\SOFTWARE\" cleanName
+			        , % "License", % licenseNumber
+			
+			return true
+		}
+		catch
+			return false
+	}
+
+	/*
+		Function: IsLicenceValid
+		Parameters:
+		Notes:
+	*/
+	IsLicenceValid(licenseType, licenseNumber)
+	{
+		res := this.EDDRequest("check_license", licenseType ,licenseNumber)
+
+		if InStr(res, """license"":""valid""")
+			return true
+		else
+			return false
+	}
+
+	/*
+		Function: EDDRequest
+		Parameters:
+		Notes:
+	*/
+	EDDRequest(Action, licenseType, licenseNumber)
+	{
+		strQuery := "https://shop.quickaccesspopup.com/"
+		         .  "?edd_action=" Action
+		         .  "&item_id=" licenseType
+		         .  "&license=" licenseNumber
+		         .  "&url=" this.systemID
+
+		try
+		{
+			http := ComObjCreate("WinHttp.WinHttpRequest.5.1")
+			http.Open("GET", strQuery)
+			http.SetRequestHeader("Pragma", "no-cache")
+			http.SetRequestHeader("Cache-Control", "no-cache, no-store")
+			http.SetRequestHeader("If-Modified-Since", "Sat, 1 Jan 2000 00:00:00 GMT")
+			http.Send()
+			http.WaitForResponse()
+			
+			return http.responseText
+		}
+		catch err
+			return err.what ":`n" err.message
+	}
+	
+	; Activate()
+	; 	{
+	; 	strQuery := this.strEddRootUrl . "?edd_action=activate_license&item_id=" . this.strRequestedProductId . "&license=" . this.strEddLicense . "&url=" . this.strUniqueSystemId
+	; 	strJSON := Url2Var(strQuery)
+	; 	Diag(A_ThisFunc . " strQuery", strQuery, "")
+	; 	Diag(A_ThisFunc . " strJSON", strJSON, "")
+	; 	return JSON.parse(strJSON)
+	; 	}
+	; Deactivate()
+	; 	{
+	; 	Loop, Parse, % "/|", |
+	; 	{
+	; 	strQuery := this.strEddRootUrl . "?edd_action=deactivate_license&item_id=" . this.strRequestedProductId . "&license=" . this.strEddLicense . "&url=" . this.strUniqueSystemId . A_LoopField
+	; 	strJSON := Url2Var(strQuery)
+	; 	Diag(A_ThisFunc . " strQuery", strQuery, "")
+	; 	Diag(A_ThisFunc . " strJSON", strJSON, "")
+	; 	this.oLicense := JSON.parse(strJSON)
+	; 	if (this.oLicense.success)
+	; 	break
+	; 	}
+	; 	}
+	; GetVersion()
+	; 	{
+	; 	strQuery := this.strEddRootUrl . "?edd_action=get_version&item_id=" . this.oLicense.item_id . "&license=" . this.strEddLicense . "&url=" . this.strUniqueSystemId
+	; 	strJSON := Url2Var(strQuery)
+	; 	Diag(A_ThisFunc . " strQuery", strQuery, "")
+	; 	Diag(A_ThisFunc . " strJSON", strJSON, "")
+	; 	return JSON.parse(strJSON)
+	; 	}
+	; RenewLink()
+	; 	{
+	; 	strUrl := this.strEddRootUrl . "checkout/?edd_license_key=" . this.strEddLicense . "&download_id=" . this.oLicense.item_id
+	; 	Diag(A_ThisFunc . " strUrl", strUrl, "")
+	; 	return strUrl
+	; 	}
 }
