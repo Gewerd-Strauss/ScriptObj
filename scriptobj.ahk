@@ -1,4 +1,4 @@
-﻿/**
+/**
  * ============================================================================ *
  * @Author           : RaptorX <graptorx@gmail.com>
  * @Script Name      : Script Object
@@ -510,6 +510,9 @@ class script
 	{
 		res := this.EDDRequest(URL, "check_license", licenseType ,licenseNumber)
 
+		if InStr(res, """license"":""inactive""")
+			res := this.EDDRequest(URL, "activate_license", licenseType ,licenseNumber)
+		
 		if InStr(res, """license"":""valid""")
 			return true
 		else
