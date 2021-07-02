@@ -1,4 +1,4 @@
-/**
+﻿/**
  * ============================================================================ *
  * @Author           : RaptorX <graptorx@gmail.com>
  * @Script Name      : Script Object
@@ -53,7 +53,7 @@ class script
 	      ,dbgFile      := ""
 	      ,dbgLevel     := this.DBG_NONE
 
-	static systemID := "C0D95HW8"
+	static systemID := "" ;"C0D95HW8"
 	      ,licenseTypes := {51 : "Free"
 	                       ,62 : "Yearly"
 	                       ,59 : "Monthly"
