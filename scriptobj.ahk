@@ -1,4 +1,4 @@
-﻿/**
+/**
  * ============================================================================ *
  * @Author           : RaptorX <graptorx@gmail.com>
  * @Script Name      : Script Object
@@ -48,18 +48,12 @@ class script
 	      ,homepagetext := ""
 	      ,homepagelink := ""
 	      ,resfolder    := ""
-	      ,iconfile     := ""
+	      ,icon         := ""
 	      ,config       := ""
+	      ,systemID     := ""
 	      ,dbgFile      := ""
 	      ,dbgLevel     := this.DBG_NONE
 
-	static systemID := "" ;"C0D95HW8"
-	      ,licenseTypes := {51 : "Free"
-	                       ,62 : "Yearly"
-	                       ,59 : "Monthly"
-	                       ,57 : "LifeTime"
-	                       ,110: "CustomLifetime"
-	                       ,112: "CustomYearly"}
 
 	/**
 		Function: Update
@@ -332,10 +326,10 @@ class script
 		        * this.DBG_ERRORS
 		        * this.DBG_WARNINGS
 		        * this.DBG_VERBOSE
-		
+
 		If you set the level for a particular message to *this.DBG_VERBOSE* this message
 		wont be shown when the class debug level is set to lower than that (e.g. *this.DBG_WARNINGS*).
-		
+
 		label - Message label, mainly used to show the name of the function or label that triggered the message
 		msg   - Arbitrary message that will be displayed on the debugger or logged to the log file
 		vars* - Aditional parameters that whill be shown as passed. Useful to show variable contents to the debugger.
@@ -367,7 +361,7 @@ class script
 		Parameters:
 		scriptName   (opt) - Name of the script which will be
 		                     shown as the title of the window and the main header
-		version      (opt) - Script Version in SimVer format, a "v" 
+		version      (opt) - Script Version in SimVer format, a "v"
 		                     will be added automatically to this value
 		author       (opt) - Name of the author of the script
 		homepagetext (opt) - Display text for the script website
@@ -460,7 +454,7 @@ class script
 			gui aboutScript:destroy
 		return
 	}
-	
+
 	/*
 		Function: GetLicense
 		Parameters:
@@ -490,11 +484,11 @@ class script
 			RegWrite, % "REG_SZ"
 			        , % "HKCU\SOFTWARE\" cleanName
 			        , % "Type", % licenseType
-			
+
 			RegWrite, % "REG_SZ"
 			        , % "HKCU\SOFTWARE\" cleanName
 			        , % "License", % licenseNumber
-			
+
 			return true
 		}
 		catch
@@ -512,11 +506,18 @@ class script
 
 		if InStr(res, """license"":""inactive""")
 			res := this.EDDRequest(URL, "activate_license", licenseType ,licenseNumber)
-		
+
 		if InStr(res, """license"":""valid""")
 			return true
 		else
 			return false
+	}
+
+	GetSystemID()
+	{
+		wmi := ComObjGet("winmgmts:{impersonationLevel=impersonate}!\\" A_ComputerName "\root\cimv2")
+		(wmi.ExecQuery("Select * from Win32_BaseBoard")._newEnum)[Computer]
+		return Computer.SerialNumber
 	}
 
 	/*
@@ -538,16 +539,16 @@ class script
 			http.SetRequestHeader("Pragma", "no-cache")
 			http.SetRequestHeader("Cache-Control", "no-cache, no-store")
 			http.SetRequestHeader("User-Agent", "Mozilla/4.0 (compatible; Win32)")
-			
+
 			http.Send()
 			http.WaitForResponse()
-			
+
 			return http.responseText
 		}
 		catch err
 			return err.what ":`n" err.message
 	}
-	
+
 	; Activate()
 	; 	{
 	; 	strQuery := this.strEddRootUrl . "?edd_action=activate_license&item_id=" . this.strRequestedProductId . "&license=" . this.strEddLicense . "&url=" . this.strUniqueSystemId
