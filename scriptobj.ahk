@@ -1,4 +1,4 @@
-/**
+﻿/**
  * ============================================================================ *
  * @Author           : RaptorX <graptorx@gmail.com>
  * @Script Name      : Script Object
@@ -48,10 +48,12 @@ class script
 	      ,homepagetext := ""
 	      ,homepagelink := ""
 	      ,resfolder    := ""
-	      ,iconfile     := ""
+	      ,icon         := ""
 	      ,config       := ""
+	      ,systemID     := ""
 	      ,dbgFile      := ""
 	      ,dbgLevel     := this.DBG_NONE
+
 
 	/**
 		Function: Update
@@ -324,10 +326,10 @@ class script
 		        * this.DBG_ERRORS
 		        * this.DBG_WARNINGS
 		        * this.DBG_VERBOSE
-		
+
 		If you set the level for a particular message to *this.DBG_VERBOSE* this message
 		wont be shown when the class debug level is set to lower than that (e.g. *this.DBG_WARNINGS*).
-		
+
 		label - Message label, mainly used to show the name of the function or label that triggered the message
 		msg   - Arbitrary message that will be displayed on the debugger or logged to the log file
 		vars* - Aditional parameters that whill be shown as passed. Useful to show variable contents to the debugger.
@@ -359,7 +361,7 @@ class script
 		Parameters:
 		scriptName   (opt) - Name of the script which will be
 		                     shown as the title of the window and the main header
-		version      (opt) - Script Version in SimVer format, a "v" 
+		version      (opt) - Script Version in SimVer format, a "v"
 		                     will be added automatically to this value
 		author       (opt) - Name of the author of the script
 		homepagetext (opt) - Display text for the script website
@@ -452,4 +454,192 @@ class script
 			gui aboutScript:destroy
 		return
 	}
+
+	/*
+		Function: GetLicense
+		Parameters:
+		Notes:
+	*/
+	GetLicense()
+	{
+		global
+
+		this.systemID := this.GetSystemID()
+		cleanName := RegexReplace(A_ScriptName, "\..*$")
+		for i,value in ["Type", "License"]
+			RegRead, %value%, % "HKCU\SOFTWARE\" cleanName, % value
+
+		if (!License)
+		{
+			MsgBox, % 0x4 + 0x20
+			      , % "No license"
+			      , % "Seems like there is no license activated on this computer.`n"
+			        . "Do you have a license that you want to activate now?"
+
+			IfMsgBox, Yes
+			{
+				Gui, license:new
+				Gui, add, Text, w160, % "Paste the License Code here"
+				Gui, add, Edit, w160 vLicenseNumber
+				Gui, add, Button, w75 vTest, % "Save"
+				Gui, add, Button, w75 x+10, % "Cancel"
+				Gui, show
+
+				saveFunction := Func("licenseButtonSave").bind(this)
+				GuiControl, +g, test, % saveFunction
+				Exit
+			}
+
+			MsgBox, % 0x30
+			      , % "Unable to Run"
+			      , % "This program cannot run without a license."
+
+			ExitApp, 1
+		}
+
+		return {"type"    : Type
+		       ,"number"  : License}
+	}
+
+	/*
+		Function: SaveLicense
+		Parameters:
+		Notes:
+	*/
+	SaveLicense(licenseType, licenseNumber)
+	{
+		cleanName := RegexReplace(A_ScriptName, "\..*$")
+
+		Try
+		{
+			RegWrite, % "REG_SZ"
+			        , % "HKCU\SOFTWARE\" cleanName
+			        , % "Type", % licenseType
+
+			RegWrite, % "REG_SZ"
+			        , % "HKCU\SOFTWARE\" cleanName
+			        , % "License", % licenseNumber
+
+			return true
+		}
+		catch
+			return false
+	}
+
+	/*
+		Function: IsLicenceValid
+		Parameters:
+		Notes:
+	*/
+	IsLicenceValid(licenseType, licenseNumber, URL)
+	{
+		res := this.EDDRequest(URL, "check_license", licenseType ,licenseNumber)
+
+		if InStr(res, """license"":""inactive""")
+			res := this.EDDRequest(URL, "activate_license", licenseType ,licenseNumber)
+
+		if InStr(res, """license"":""valid""")
+			return true
+		else
+			return false
+	}
+
+	GetSystemID()
+	{
+		wmi := ComObjGet("winmgmts:{impersonationLevel=impersonate}!\\" A_ComputerName "\root\cimv2")
+		(wmi.ExecQuery("Select * from Win32_BaseBoard")._newEnum)[Computer]
+		return Computer.SerialNumber
+	}
+
+	/*
+		Function: EDDRequest
+		Parameters:
+		Notes:
+	*/
+	EDDRequest(URL, Action, licenseType, licenseNumber)
+	{
+		strQuery := url "?edd_action=" Action
+		         .  "&item_id=" licenseType
+		         .  "&license=" licenseNumber
+		         .  (this.systemID ? "&url=" this.systemID : "")
+
+		try
+		{
+			http := ComObjCreate("WinHttp.WinHttpRequest.5.1")
+			http.Open("GET", strQuery)
+			http.SetRequestHeader("Pragma", "no-cache")
+			http.SetRequestHeader("Cache-Control", "no-cache, no-store")
+			http.SetRequestHeader("User-Agent", "Mozilla/4.0 (compatible; Win32)")
+
+			http.Send()
+			http.WaitForResponse()
+
+			return http.responseText
+		}
+		catch err
+			return err.what ":`n" err.message
+	}
+
+	; Activate()
+	; 	{
+	; 	strQuery := this.strEddRootUrl . "?edd_action=activate_license&item_id=" . this.strRequestedProductId . "&license=" . this.strEddLicense . "&url=" . this.strUniqueSystemId
+	; 	strJSON := Url2Var(strQuery)
+	; 	Diag(A_ThisFunc . " strQuery", strQuery, "")
+	; 	Diag(A_ThisFunc . " strJSON", strJSON, "")
+	; 	return JSON.parse(strJSON)
+	; 	}
+	; Deactivate()
+	; 	{
+	; 	Loop, Parse, % "/|", |
+	; 	{
+	; 	strQuery := this.strEddRootUrl . "?edd_action=deactivate_license&item_id=" . this.strRequestedProductId . "&license=" . this.strEddLicense . "&url=" . this.strUniqueSystemId . A_LoopField
+	; 	strJSON := Url2Var(strQuery)
+	; 	Diag(A_ThisFunc . " strQuery", strQuery, "")
+	; 	Diag(A_ThisFunc . " strJSON", strJSON, "")
+	; 	this.oLicense := JSON.parse(strJSON)
+	; 	if (this.oLicense.success)
+	; 	break
+	; 	}
+	; 	}
+	; GetVersion()
+	; 	{
+	; 	strQuery := this.strEddRootUrl . "?edd_action=get_version&item_id=" . this.oLicense.item_id . "&license=" . this.strEddLicense . "&url=" . this.strUniqueSystemId
+	; 	strJSON := Url2Var(strQuery)
+	; 	Diag(A_ThisFunc . " strQuery", strQuery, "")
+	; 	Diag(A_ThisFunc . " strJSON", strJSON, "")
+	; 	return JSON.parse(strJSON)
+	; 	}
+	; RenewLink()
+	; 	{
+	; 	strUrl := this.strEddRootUrl . "checkout/?edd_license_key=" . this.strEddLicense . "&download_id=" . this.oLicense.item_id
+	; 	Diag(A_ThisFunc . " strUrl", strUrl, "")
+	; 	return strUrl
+	; 	}
+}
+
+licenseButtonSave(this, CtrlHwnd, GuiEvent, EventInfo, ErrLevel:="")
+{
+	GuiControlGet, LicenseNumber
+	if this.IsLicenceValid(this.eddID, licenseNumber, "https://www.the-automator.com")
+	{
+		this.SaveLicense(this.eddID, LicenseNumber)
+		Reload
+	}
+	else
+	{
+		MsgBox, % 0x10
+		      , % "Invalid License"
+		      , % "The license you entered is invalid and cannot be activated."
+
+		ExitApp, 1
+	}
+}
+
+licenseButtonCancel(CtrlHwnd, GuiEvent, EventInfo, ErrLevel:="")
+{
+	MsgBox, % 0x30
+	      , % "Unable to Run"
+	      , % "This program cannot run without a license."
+
+	ExitApp, 1
 }
