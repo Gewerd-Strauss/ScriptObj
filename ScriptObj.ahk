@@ -2,16 +2,16 @@
  * ============================================================================ *
  * @Author           : RaptorX <graptorx@gmail.com>
  * @Script Name      : Script Object
- * @Script Version   : 0.15.1
+ * @Script Version   : 0.20.2
  * @Homepage         :
  *
  * @Creation Date    : November 09, 2020
- * @Modification Date: June 29, 2021
+ * @Modification Date: July 02, 2021
  *
  * @Description      :
  * -------------------
  * This is an object used to have a few common functions between scripts
- * Those are functions and variables related to basic script information, 
+ * Those are functions and variables related to basic script information,
  * upgrade and configuration.
  *
  * ============================================================================ *
@@ -34,24 +34,26 @@
 
 class script
 {
-	static DBG_NONE := 0
-	,DBG_ERRORS     := 1
-	,DBG_WARNINGS   := 2
-	,DBG_VERBOSE    := 3
+	static DBG_NONE     := 0
+	      ,DBG_ERRORS   := 1
+	      ,DBG_WARNINGS := 2
+	      ,DBG_VERBOSE  := 3
 
-	name         := ""
-	version      := ""
-	author       := ""
-	email        := ""
-	crtdate      := ""
-	moddate      := ""
-	homepagetext := ""
-	homepagelink := ""
-	resfolder    := ""
-	iconfile     := ""
-	config       := ""
-	dbgFile      := ""
-	dbgLevel     := this.DBG_NONE
+	static name         := ""
+	      ,version      := ""
+	      ,author       := ""
+	      ,email        := ""
+	      ,crtdate      := ""
+	      ,moddate      := ""
+	      ,homepagetext := ""
+	      ,homepagelink := ""
+	      ,resfolder    := ""
+	      ,icon         := ""
+	      ,config       := ""
+	      ,systemID     := ""
+	      ,dbgFile      := ""
+	      ,dbgLevel     := this.DBG_NONE
+
 
 	/**
 		Function: Update
@@ -60,11 +62,11 @@ class script
 		Compares and automatically downloads the new script file and reloads the script.
 
 		Parameters:
-		vfile	-	Version File
-				Remote version file to be validated against.
-		rfile	-	Remote File
-				script file to be downloaded and installed if a new version is found.
-				should be a zip file that will be unzipped by the function
+		vfile - Version File
+		        Remote version file to be validated against.
+		rfile - Remote File
+		        Script file to be downloaded and installed if a new version is found.
+		        Should be a zip file that will be unzipped by the function
 
 		Notes:
 		The versioning file should only contain a version string and nothing else.
@@ -75,7 +77,7 @@ class script
 
 		For more information about SemVer and its specs click here: <https://semver.org/>
 	*/
-	update(vfile, rfile)
+	Update(vfile, rfile)
 	{
 		; Error Codes
 		static ERR_INVALIDVFILE := 1
@@ -248,18 +250,23 @@ class script
 		user.
 
 		Parameters:
-		status 	-	Autostart status
-					It can be either true or false.
-					Setting it to true would add the registry value.
-					Setting it to false would delete an existing registry value.
+		status - Autostart status
+		         It can be either true or false.
+		         Setting it to true would add the registry value.
+		         Setting it to false would delete an existing registry value.
 	*/
-	autostart(status)
+	Autostart(status)
 	{
 		if (status)
-			regwrite, reg_sz, hkcu\software\microsoft\windows\currentversion\run, %a_scriptname%
-																				, %a_scriptfullpath%
+		{
+			RegWrite, REG_SZ
+			        , HKCU\SOFTWARE\microsoft\windows\currentversion\run
+			        , %a_scriptname%
+			        , %a_scriptfullpath%
+		}
 		else
-			regdelete, hkcu\software\microsoft\windows\currentversion\run, %a_scriptname%
+			regdelete, HKCU\SOFTWARE\microsoft\windows\currentversion\run
+			         , %a_scriptname%
 	}
 
 	/**
@@ -267,11 +274,11 @@ class script
 		Shows a custom image as a splash screen with a simple fading animation
 
 		Parameters:
-		img 	(opt)	-	Image file to be displayed
-		speed 	(opt)	-	How fast the fading animation will be. Higher value is faster.
-		pause 	(opt)	-	How long in seconds the image will be paused after fully displayed.
+		img   (opt) - file to be displayed
+		speed (opt) - fast the fading animation will be. Higher value is faster.
+		pause (opt) - long in seconds the image will be paused after fully displayed.
 	*/
-	splash(img:="", speed:=10, pause:=2)
+	Splash(img:="", speed:=10, pause:=2)
 	{
 		global
 
@@ -314,22 +321,24 @@ class script
 		by the current debug level set on the object.
 
 		Parameters:
-		level 	-	Debug Level, which can be:
-					* this.DBG_NONE
-					* this.DBG_ERRORS
-					* this.DBG_WARNINGS
-					* this.DBG_VERBOSE
-					If you set the level for a particular message to *this.DBG_VERBOSE* this message
-					wont be shown when the class debug level is set to lower than that (e.g. *this.DBG_WARNINGS*).
-		label 	-	Message label, mainly used to show the name of the function or label that triggered the message
-		msg 	-	Arbitrary message that will be displayed on the debugger or logged to the log file
-		vars*	-	Aditional parameters that whill be shown as passed. Useful to show variable contents to the debugger.
+		level - Debug Level, which can be:
+		        * this.DBG_NONE
+		        * this.DBG_ERRORS
+		        * this.DBG_WARNINGS
+		        * this.DBG_VERBOSE
+
+		If you set the level for a particular message to *this.DBG_VERBOSE* this message
+		wont be shown when the class debug level is set to lower than that (e.g. *this.DBG_WARNINGS*).
+
+		label - Message label, mainly used to show the name of the function or label that triggered the message
+		msg   - Arbitrary message that will be displayed on the debugger or logged to the log file
+		vars* - Aditional parameters that whill be shown as passed. Useful to show variable contents to the debugger.
 
 		Notes:
 		The point of this function is to have all your debug messages added to your script and filter them out
 		by just setting the object's dbgLevel variable once, which in turn would disable some types of messages.
 	*/
-	debug(level:=1, label:=">", msg:="", vars*)
+	Debug(level:=1, label:=">", msg:="", vars*)
 	{
 		if !this.dbglevel
 			return
@@ -350,20 +359,23 @@ class script
 		Shows a quick HTML Window based on the object's variable information
 
 		Parameters:
-		scriptName 		(opt)	-	Name of the script which will be shown as the title of the window and the main header
-		version			(opt)	-	Script Version in SimVer format, a "v" will be added automatically to this value
-		author 			(opt)	-	Name of the author of the script
-		homepagetext	(opt)	-	Display text for the script website
-		homepagelink	(opt)	-	Href link to that points to the scripts website (for pretty links and utm campaing codes)
-		donateLink		(opt)	-	Link to a donation site
-		email			(opt)	-	Developer email
+		scriptName   (opt) - Name of the script which will be
+		                     shown as the title of the window and the main header
+		version      (opt) - Script Version in SimVer format, a "v"
+		                     will be added automatically to this value
+		author       (opt) - Name of the author of the script
+		homepagetext (opt) - Display text for the script website
+		homepagelink (opt) - Href link to that points to the scripts
+		                     website (for pretty links and utm campaing codes)
+		donateLink   (opt) - Link to a donation site
+		email        (opt) - Developer email
 
 		Notes:
 		The function will try to infer the paramters if they are blank by checking
 		the class variables if provided. This allows you to set all information once
 		when instatiating the class, and the about GUI will be filled out automatically.
 	*/
-	about(scriptName:="", version:="", author:="", homepagetext:="", homepagelink:="", donateLink:="", email:="")
+	About(scriptName:="", version:="", author:="", homepagetext:="", homepagelink:="", donateLink:="", email:="")
 	{
 		static doc
 
@@ -442,4 +454,192 @@ class script
 			gui aboutScript:destroy
 		return
 	}
+
+	/*
+		Function: GetLicense
+		Parameters:
+		Notes:
+	*/
+	GetLicense()
+	{
+		global
+
+		this.systemID := this.GetSystemID()
+		cleanName := RegexReplace(A_ScriptName, "\..*$")
+		for i,value in ["Type", "License"]
+			RegRead, %value%, % "HKCU\SOFTWARE\" cleanName, % value
+
+		if (!License)
+		{
+			MsgBox, % 0x4 + 0x20
+			      , % "No license"
+			      , % "Seems like there is no license activated on this computer.`n"
+			        . "Do you have a license that you want to activate now?"
+
+			IfMsgBox, Yes
+			{
+				Gui, license:new
+				Gui, add, Text, w160, % "Paste the License Code here"
+				Gui, add, Edit, w160 vLicenseNumber
+				Gui, add, Button, w75 vTest, % "Save"
+				Gui, add, Button, w75 x+10, % "Cancel"
+				Gui, show
+
+				saveFunction := Func("licenseButtonSave").bind(this)
+				GuiControl, +g, test, % saveFunction
+				Exit
+			}
+
+			MsgBox, % 0x30
+			      , % "Unable to Run"
+			      , % "This program cannot run without a license."
+
+			ExitApp, 1
+		}
+
+		return {"type"    : Type
+		       ,"number"  : License}
+	}
+
+	/*
+		Function: SaveLicense
+		Parameters:
+		Notes:
+	*/
+	SaveLicense(licenseType, licenseNumber)
+	{
+		cleanName := RegexReplace(A_ScriptName, "\..*$")
+
+		Try
+		{
+			RegWrite, % "REG_SZ"
+			        , % "HKCU\SOFTWARE\" cleanName
+			        , % "Type", % licenseType
+
+			RegWrite, % "REG_SZ"
+			        , % "HKCU\SOFTWARE\" cleanName
+			        , % "License", % licenseNumber
+
+			return true
+		}
+		catch
+			return false
+	}
+
+	/*
+		Function: IsLicenceValid
+		Parameters:
+		Notes:
+	*/
+	IsLicenceValid(licenseType, licenseNumber, URL)
+	{
+		res := this.EDDRequest(URL, "check_license", licenseType ,licenseNumber)
+
+		if InStr(res, """license"":""inactive""")
+			res := this.EDDRequest(URL, "activate_license", licenseType ,licenseNumber)
+
+		if InStr(res, """license"":""valid""")
+			return true
+		else
+			return false
+	}
+
+	GetSystemID()
+	{
+		wmi := ComObjGet("winmgmts:{impersonationLevel=impersonate}!\\" A_ComputerName "\root\cimv2")
+		(wmi.ExecQuery("Select * from Win32_BaseBoard")._newEnum)[Computer]
+		return Computer.SerialNumber
+	}
+
+	/*
+		Function: EDDRequest
+		Parameters:
+		Notes:
+	*/
+	EDDRequest(URL, Action, licenseType, licenseNumber)
+	{
+		strQuery := url "?edd_action=" Action
+		         .  "&item_id=" licenseType
+		         .  "&license=" licenseNumber
+		         .  (this.systemID ? "&url=" this.systemID : "")
+
+		try
+		{
+			http := ComObjCreate("WinHttp.WinHttpRequest.5.1")
+			http.Open("GET", strQuery)
+			http.SetRequestHeader("Pragma", "no-cache")
+			http.SetRequestHeader("Cache-Control", "no-cache, no-store")
+			http.SetRequestHeader("User-Agent", "Mozilla/4.0 (compatible; Win32)")
+
+			http.Send()
+			http.WaitForResponse()
+
+			return http.responseText
+		}
+		catch err
+			return err.what ":`n" err.message
+	}
+
+	; Activate()
+	; 	{
+	; 	strQuery := this.strEddRootUrl . "?edd_action=activate_license&item_id=" . this.strRequestedProductId . "&license=" . this.strEddLicense . "&url=" . this.strUniqueSystemId
+	; 	strJSON := Url2Var(strQuery)
+	; 	Diag(A_ThisFunc . " strQuery", strQuery, "")
+	; 	Diag(A_ThisFunc . " strJSON", strJSON, "")
+	; 	return JSON.parse(strJSON)
+	; 	}
+	; Deactivate()
+	; 	{
+	; 	Loop, Parse, % "/|", |
+	; 	{
+	; 	strQuery := this.strEddRootUrl . "?edd_action=deactivate_license&item_id=" . this.strRequestedProductId . "&license=" . this.strEddLicense . "&url=" . this.strUniqueSystemId . A_LoopField
+	; 	strJSON := Url2Var(strQuery)
+	; 	Diag(A_ThisFunc . " strQuery", strQuery, "")
+	; 	Diag(A_ThisFunc . " strJSON", strJSON, "")
+	; 	this.oLicense := JSON.parse(strJSON)
+	; 	if (this.oLicense.success)
+	; 	break
+	; 	}
+	; 	}
+	; GetVersion()
+	; 	{
+	; 	strQuery := this.strEddRootUrl . "?edd_action=get_version&item_id=" . this.oLicense.item_id . "&license=" . this.strEddLicense . "&url=" . this.strUniqueSystemId
+	; 	strJSON := Url2Var(strQuery)
+	; 	Diag(A_ThisFunc . " strQuery", strQuery, "")
+	; 	Diag(A_ThisFunc . " strJSON", strJSON, "")
+	; 	return JSON.parse(strJSON)
+	; 	}
+	; RenewLink()
+	; 	{
+	; 	strUrl := this.strEddRootUrl . "checkout/?edd_license_key=" . this.strEddLicense . "&download_id=" . this.oLicense.item_id
+	; 	Diag(A_ThisFunc . " strUrl", strUrl, "")
+	; 	return strUrl
+	; 	}
+}
+
+licenseButtonSave(this, CtrlHwnd, GuiEvent, EventInfo, ErrLevel:="")
+{
+	GuiControlGet, LicenseNumber
+	if this.IsLicenceValid(this.eddID, licenseNumber, "https://www.the-automator.com")
+	{
+		this.SaveLicense(this.eddID, LicenseNumber)
+		Reload
+	}
+	else
+	{
+		MsgBox, % 0x10
+		      , % "Invalid License"
+		      , % "The license you entered is invalid and cannot be activated."
+
+		ExitApp, 1
+	}
+}
+
+licenseButtonCancel(CtrlHwnd, GuiEvent, EventInfo, ErrLevel:="")
+{
+	MsgBox, % 0x30
+	      , % "Unable to Run"
+	      , % "This program cannot run without a license."
+
+	ExitApp, 1
 }
