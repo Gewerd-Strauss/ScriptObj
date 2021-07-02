@@ -1,4 +1,4 @@
-/**
+﻿/**
  * ============================================================================ *
  * @Author           : RaptorX <graptorx@gmail.com>
  * @Script Name      : Script Object
@@ -462,12 +462,43 @@ class script
 	*/
 	GetLicense()
 	{
+		global
+
+		this.systemID := this.GetSystemID()
 		cleanName := RegexReplace(A_ScriptName, "\..*$")
 		for i,value in ["Type", "License"]
 			RegRead, %value%, % "HKCU\SOFTWARE\" cleanName, % value
 
-		return {"type"  : Type ? Type : false
-		       ,"number": License ? License : false}
+		if (!License)
+		{
+			MsgBox, % 0x4 + 0x20
+			      , % "No license"
+			      , % "Seems like there is no license activated on this computer.`n"
+			        . "Do you have a license that you want to activate now?"
+
+			IfMsgBox, Yes
+			{
+				Gui, license:new
+				Gui, add, Text, w160, % "Paste the License Code here"
+				Gui, add, Edit, w160 vLicenseNumber
+				Gui, add, Button, w75 vTest, % "Save"
+				Gui, add, Button, w75 x+10, % "Cancel"
+				Gui, show
+
+				saveFunction := Func("licenseButtonSave").bind(this)
+				GuiControl, +g, test, % saveFunction
+				Exit
+			}
+
+			MsgBox, % 0x30
+			      , % "Unable to Run"
+			      , % "This program cannot run without a license."
+
+			ExitApp, 1
+		}
+
+		return {"type"    : Type
+		       ,"number"  : License}
 	}
 
 	/*
@@ -584,4 +615,31 @@ class script
 	; 	Diag(A_ThisFunc . " strUrl", strUrl, "")
 	; 	return strUrl
 	; 	}
+}
+
+licenseButtonSave(this, CtrlHwnd, GuiEvent, EventInfo, ErrLevel:="")
+{
+	GuiControlGet, LicenseNumber
+	if this.IsLicenceValid(this.eddID, licenseNumber, "https://www.the-automator.com")
+	{
+		this.SaveLicense(this.eddID, LicenseNumber)
+		Reload
+	}
+	else
+	{
+		MsgBox, % 0x10
+		      , % "Invalid License"
+		      , % "The license you entered is invalid and cannot be activated."
+
+		ExitApp, 1
+	}
+}
+
+licenseButtonCancel(CtrlHwnd, GuiEvent, EventInfo, ErrLevel:="")
+{
+	MsgBox, % 0x30
+	      , % "Unable to Run"
+	      , % "This program cannot run without a license."
+
+	ExitApp, 1
 }
