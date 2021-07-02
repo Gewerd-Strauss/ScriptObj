@@ -1,4 +1,4 @@
-﻿/**
+/**
  * ============================================================================ *
  * @Author           : RaptorX <graptorx@gmail.com>
  * @Script Name      : Script Object
@@ -506,9 +506,9 @@ class script
 		Parameters:
 		Notes:
 	*/
-	IsLicenceValid(licenseType, licenseNumber)
+	IsLicenceValid(licenseType, licenseNumber, URL)
 	{
-		res := this.EDDRequest("check_license", licenseType ,licenseNumber)
+		res := this.EDDRequest(URL, "check_license", licenseType ,licenseNumber)
 
 		if InStr(res, """license"":""valid""")
 			return true
@@ -521,13 +521,12 @@ class script
 		Parameters:
 		Notes:
 	*/
-	EDDRequest(Action, licenseType, licenseNumber)
+	EDDRequest(URL, Action, licenseType, licenseNumber)
 	{
-		strQuery := "https://shop.quickaccesspopup.com/"
-		         .  "?edd_action=" Action
+		strQuery := url "?edd_action=" Action
 		         .  "&item_id=" licenseType
 		         .  "&license=" licenseNumber
-		         .  "&url=" this.systemID
+		         .  (this.systemID ? "&url=" this.systemID : "")
 
 		try
 		{
