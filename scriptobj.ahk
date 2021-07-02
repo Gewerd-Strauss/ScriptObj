@@ -1,4 +1,4 @@
-/**
+﻿/**
  * ============================================================================ *
  * @Author           : RaptorX <graptorx@gmail.com>
  * @Script Name      : Script Object
@@ -537,7 +537,8 @@ class script
 			http.Open("GET", strQuery)
 			http.SetRequestHeader("Pragma", "no-cache")
 			http.SetRequestHeader("Cache-Control", "no-cache, no-store")
-			http.SetRequestHeader("If-Modified-Since", "Sat, 1 Jan 2000 00:00:00 GMT")
+			http.SetRequestHeader("User-Agent", "Mozilla/4.0 (compatible; Win32)")
+			
 			http.Send()
 			http.WaitForResponse()
 			
