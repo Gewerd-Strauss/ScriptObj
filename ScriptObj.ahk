@@ -1,13 +1,19 @@
-﻿/**
+; last edited by Gewerd Strauss @ 27.11.2021
+; from RaptorX https://github.com/RaptorX/ScriptObj/blob/master/ScriptObj.ahk
+/**
  * ============================================================================ *
  * @Author           : RaptorX <graptorx@gmail.com>
  * @Script Name      : Script Object
- * @Script Version   : 0.20.2
+ * @Script Version   : 0.20.3
  * @Homepage         :
  *
  * @Creation Date    : November 09, 2020
  * @Modification Date: July 02, 2021
- *
+ * @Modification G.S.: November 27, 2021
+ ; @Description Modification G.S.: added field for GitHub-link, a Forum-link 
+ 								   and a credits-field, as well as a template 
+								   to quickly copy out into new scripts
+ * 
  * @Description      :
  * -------------------
  * This is an object used to have a few common functions between scripts
@@ -16,21 +22,49 @@
  *
  * ============================================================================ *
  */
+; scriptName   (opt) - Name of the script which will be
+; 		                     shown as the title of the window and the main header
+; 		version      (opt) - Script Version in SimVer format, a "v"
+; 		                     will be added automatically to this value
+; 		author       (opt) - Name of the author of the script
+; 		credits 	 (opt) - Name of credited people
+; 		creditslink  (opt) - Link to credited file, if any
+; 		crtdate		 (opt) - Date of creation
+; 		moddate		 (opt) - Date of modification
+; 		homepagetext (opt) - Display text for the script website
+; 		homepagelink (opt) - Href link to that points to the scripts
+; 		                     website (for pretty links and utm campaing codes)
+; 		ghlink 		 (opt) - GitHubLink
+; 		ghtext 		 (opt) - GitHubtext
+; 		forumlink    (opt) - forumlink to the scripts forum page
+; 		forumtext    (opt) - forumtext 
+; 		donateLink   (opt) - Link to a donation site
+; 		email        (opt) - Developer email
 
+; Template
 ; global script := {base         : script
-;                  ,name          : regexreplace(A_ScriptName, "\.\w+")
+;                  ,name         : regexreplace(A_ScriptName, "\.\w+")
 ;                  ,version      : "0.1.0"
 ;                  ,author       : ""
 ;                  ,email        : ""
+;                  ,credits      : ""
+;                  ,creditslink  : ""
 ;                  ,crtdate      : ""
 ;                  ,moddate      : ""
 ;                  ,homepagetext : ""
 ;                  ,homepagelink : ""
-;                  ,donateLink   : "https://www.paypal.com/donate?hosted_button_id=MBT5HSD9G94N6"
+;                  ,ghlink       : ""
+;                  ,ghtext 		 : ""
+;                  ,doclink      : ""
+;                  ,doctext		 : ""
+;                  ,forumlink    : ""
+;                  ,forumtext	 : ""
+;                  ,donateLink   : ""
 ;                  ,resfolder    : A_ScriptDir "\res"
 ;                  ,iconfile     : A_ScriptDir "\res\sct.ico"
 ;                  ,configfile   : A_ScriptDir "\settings.ini"
-;                  ,configfolder : A_ScriptDir ""}
+;                  ,configfolder : A_ScriptDir ""
+; 				   }
 
 class script
 {
@@ -43,10 +77,18 @@ class script
 	      ,version      := ""
 	      ,author       := ""
 	      ,email        := ""
+		  ,credits      := ""
+		  ,creditslink  := ""
 	      ,crtdate      := ""
 	      ,moddate      := ""
 	      ,homepagetext := ""
 	      ,homepagelink := ""
+		  ,ghlink		:= ""
+		  ,ghtext 		:= ""
+          ,doclink      := ""
+          ,doctext		:= ""
+		  ,forumlink 	:= ""
+		  ,forumtext 	:= ""
 	      ,resfolder    := ""
 	      ,icon         := ""
 	      ,config       := ""
@@ -92,7 +134,7 @@ class script
 		; A URL is expected in this parameter, we just perform a basic check
 		; TODO make a more robust match
 		if (!regexmatch(vfile, "^((?:http(?:s)?|ftp):\/\/)?((?:[a-z0-9_\-]+\.)+.*$)"))
-			throw {code: ERR_INVALIDVFILE, msg: "Invalid URL`n`nThe version file parameter must point to a valid URL."}
+			throw {code: ERR_INVALIDVFILE, msg: "Invalid URL`n`nThe version file parameter must point to a 	valid URL."}
 
 		; This function expects a ZIP file
 		if (!regexmatch(rfile, "\.zip"))
@@ -119,7 +161,7 @@ class script
 			throw {code: ERR_NORESPONSE, msg: "There was an error trying to download the ZIP file.`n"
 											. "The server did not respond."}
 		}
-
+		m(http.responseText)
 		regexmatch(this.version, "\d+\.\d+\.\d+", loVersion)
 		regexmatch(http.responseText, "\d+\.\d+\.\d+", remVersion)
 
@@ -364,6 +406,13 @@ class script
 		version      (opt) - Script Version in SimVer format, a "v"
 		                     will be added automatically to this value
 		author       (opt) - Name of the author of the script
+		credits 	 (opt) - Name of credited people
+		ghlink 		 (opt) - GitHubLink
+		ghtext 		 (opt) - GitHubtext
+		doclink 	 (opt) - DocumentationLink
+		doctext 	 (opt) - Documentationtext
+		forumlink    (opt) - forumlink
+		forumtext    (opt) - forumtext
 		homepagetext (opt) - Display text for the script website
 		homepagelink (opt) - Href link to that points to the scripts
 		                     website (for pretty links and utm campaing codes)
@@ -375,19 +424,27 @@ class script
 		the class variables if provided. This allows you to set all information once
 		when instatiating the class, and the about GUI will be filled out automatically.
 	*/
-	About(scriptName:="", version:="", author:="", homepagetext:="", homepagelink:="", donateLink:="", email:="")
+	About(scriptName:="", version:="", author:="",credits:="", homepagetext:="", homepagelink:="", donateLink:="", email:="")
 	{
 		static doc
 
 		scriptName := scriptName ? scriptName : this.name
 		version := version ? version : this.version
 		author := author ? author : this.author
+		credits := credits ? credits : this.credits
+		creditslink := creditslink ? creditslink : RegExReplace(this.creditslink, "http(s)?:\/\/")
+		ghtext := ghtext ? ghtext : RegExReplace(this.ghtext, "http(s)?:\/\/")
+		ghlink := ghlink ? ghlink : RegExReplace(this.ghlink, "http(s)?:\/\/")
+		doctext := doctext ? doctext : RegExReplace(this.doctext, "http(s)?:\/\/")
+		doclink := doclink ? doclink : RegExReplace(this.doclink, "http(s)?:\/\/")
+		forumtext := forumtext ? forumtext : RegExReplace(this.forumtext, "http(s)?:\/\/")
+		forumlink := forumlink ? forumlink : RegExReplace(this.forumlink, "http(s)?:\/\/")
 		homepagetext := homepagetext ? homepagetext : RegExReplace(this.homepagetext, "http(s)?:\/\/")
 		homepagelink := homepagelink ? homepagelink : RegExReplace(this.homepagelink, "http(s)?:\/\/")
 		donateLink := donateLink ? donateLink : RegExReplace(this.donateLink, "http(s)?:\/\/")
 		email := email ? email : this.email
 
-		if (donateLink)
+ 		if (donateLink)
 		{
 			donateSection =
 			(
@@ -430,7 +487,12 @@ class script
 						<h2>%scriptName%</h2>
 						<p>v%version%</p>
 						<hr>
-						<p>%author%</p>
+						<p>by %author%</p>
+						<p>credits: <a href="https://%creditslink%" target="_blank">%credits%</a></p>
+						<hr>
+						<p><a href="https://%forumlink%" target="_blank">%forumtext%</a></p>
+						<p><a href="https://%ghlink%" target="_blank">%ghtext%</a></p>
+						<p><a href="https://%doclink%" target="_blank">%doctext%</a></p>
 						<p><a href="https://%homepagelink%" target="_blank">%homepagetext%</a></p>
 					</div>
 					%donateSection%
@@ -438,9 +500,20 @@ class script
 			</html>
 		)
 
-		btnxPos := 300/2 - 75/2
-		axHight := donateLink ? 16 : 12
-
+ 		btnxPos := 300/2 - 75/2
+		axHight:=12
+		donateHeight := donateLink ? 4 : 0
+		forumHeight := forumlink ? 2 : 0
+		ghHeight := ghlink ? 2 : 0
+		creditsHeight := creditslink ? 2 : 0
+		homepageHeight := homepagelink ? 2 : 0
+		docHeight := doclink ? 2 : 0
+		axHight+=donateHeight
+		axHight+=forumHeight
+		axHight+=ghHeight
+		axHight+=creditsHeight
+		axHight+=homepageHeight
+		axHight+=docHeight
 		gui aboutScript:new, +alwaysontop +toolwindow, % "About " this.name
 		gui margin, 0
 		gui color, white
@@ -623,6 +696,11 @@ licenseButtonSave(this, CtrlHwnd, GuiEvent, EventInfo, ErrLevel:="")
 	if this.IsLicenceValid(this.eddID, licenseNumber, "https://www.the-automator.com")
 	{
 		this.SaveLicense(this.eddID, LicenseNumber)
+		MsgBox, % 0x30
+		      , % "License Saved"
+		      , % "The license was applied correctly!`n"
+		        . "The program will start now."
+		
 		Reload
 	}
 	else
