@@ -182,7 +182,6 @@ class script
 				throw {code: ERR_NORESPONSE, msg: "There was an error trying to download the ZIP file.`n"
 												. "The server did not respond."}
 			}
-			m(http.responseText)
 			regexmatch(this.version, "\d+\.\d+\.\d+", loVersion)
 			regexmatch(http.responseText, "\d+\.\d+\.\d+", remVersion)
 
@@ -306,7 +305,7 @@ class script
 				exitapp
 			}
 		}
-		else ;;; 
+		else ;;; I guess I don't need this anymore, as GH automatically serves zips.
 		{
 			; 1. Update local vfile
 
@@ -348,7 +347,6 @@ class script
 				throw {code: ERR_NORESPONSE, msg: "There was an error trying to download the ZIP file.`n"
 												. "The server did not respond."}
 			}
-  			m(http.responseText)
 			; regexmatch(this.version, "\d+\.\d+\.\d+", loVersion)		;; as this version is not updated automatically, instead read the local version file
 			
 			FileRead, loVersion,% A_ScriptDir "\version.ini"
@@ -468,6 +466,7 @@ class script
 							exitapp
 					)
 					fileappend % tmpScript, % tmpDir "\update.ahk"
+					FileRead, Clipboard,% tmpScript
 					run % a_ahkpath " " tmpDir "\update.ahk"
 				}
 				filedelete % lockFile
