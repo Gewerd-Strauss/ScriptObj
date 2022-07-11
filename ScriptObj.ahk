@@ -9,10 +9,18 @@
  *
  * @Creation Date    : November 09, 2020
  * @Modification Date: July 02, 2021
- * @Modification G.S.: November 27, 2021
+ * @Modification G.S.: 06.2022
  ; @Description Modification G.S.: added field for GitHub-link, a Forum-link 
  								   and a credits-field, as well as a template 
 								   to quickly copy out into new scripts
+								   Contains methods for saving and loading 
+								   config-files containing an array - 
+								   basically an integration of Wolf_II's
+								   WriteIni/ReadIni with some adjustments
+								   added Update()-functionality for non-zipped
+								   remote files so that one can update a 
+								   A_ScriptFullPath-contained script from 
+								   f.e. GH.
  * 
  * @Description      :
  * -------------------
@@ -73,28 +81,38 @@ class script
 	      ,DBG_WARNINGS := 2
 	      ,DBG_VERBOSE  := 3
 
-	static name         := ""
-	      ,version      := ""
-	      ,author       := ""
-	      ,email        := ""
-		  ,credits      := ""
-		  ,creditslink  := ""
-	      ,crtdate      := ""
-	      ,moddate      := ""
-	      ,homepagetext := ""
-	      ,homepagelink := ""
-		  ,ghlink		:= ""
-		  ,ghtext 		:= ""
-          ,doclink      := ""
-          ,doctext		:= ""
-		  ,forumlink 	:= ""
-		  ,forumtext 	:= ""
-	      ,resfolder    := ""
-	      ,icon         := ""
-	      ,config       := ""
-	      ,systemID     := ""
-	      ,dbgFile      := ""
-	      ,dbgLevel     := this.DBG_NONE
+	static name       := ""
+        ,version      := ""
+        ,author       := ""
+		,authorID	  := ""
+        ,authorlink   := ""
+        ,email        := ""
+        ,credits      := ""
+        ,creditslink  := ""
+        ,crtdate      := ""
+        ,moddate      := ""
+        ,homepagetext := ""
+        ,homepagelink := ""
+        ,ghtext 	  := ""
+        ,ghlink       := ""
+        ,doctext	  := ""
+        ,doclink	  := ""
+        ,forumtext	  := ""
+        ,forumlink	  := ""
+        ,donateLink   := ""
+        ,resfolder    := ""
+        ,iconfile     := ""
+		,vfile_local  := ""
+		,vfile_remote := ""
+        ,config       := ""
+        ,configfile   := ""
+        ,configfolder := ""
+		,icon         := ""
+		,systemID     := ""
+		,dbgFile      := ""
+		,rfile		  := ""
+		,vfile		  := ""
+		,dbgLevel     := this.DBG_NONE
 
 
 	/**
@@ -119,170 +137,342 @@ class script
 
 		For more information about SemVer and its specs click here: <https://semver.org/>
 	*/
-	Update(vfile, rfile)
+	Update(vfile:="", rfile:="",bPointsToZip:=0)
 	{
+		vfile:=(vfile=="")?this.vfile:vfile
+		rfile:=(rfile=="")?this.rfile:rfile
 		; Error Codes
 		static ERR_INVALIDVFILE := 1
-		,ERR_INVALIDRFILE       := 2
-		,ERR_NOCONNECT          := 3
-		,ERR_NORESPONSE         := 4
-		,ERR_INVALIDVER         := 5
-		,ERR_CURRENTVER         := 6
-		,ERR_MSGTIMEOUT         := 7
-		,ERR_USRCANCEL          := 8
+			,ERR_INVALIDRFILE       := 2
+			,ERR_NOCONNECT          := 3
+			,ERR_NORESPONSE         := 4
+			,ERR_INVALIDVER         := 5
+			,ERR_CURRENTVER         := 6
+			,ERR_MSGTIMEOUT         := 7
+			,ERR_USRCANCEL          := 8
+		if bPointsToZip
+		{ ;; only allow downloading ZIP's
+			; A URL is expected in this parameter, we just perform a basic check
+			; TODO make a more robust match
+			if (!regexmatch(vfile, "^((?:http(?:s)?|ftp):\/\/)?((?:[a-z0-9_\-]+\.)+.*$)"))
+				throw {code: ERR_INVALIDVFILE, msg: "Invalid URL`n`nThe version file parameter must point to a 	valid URL."}
 
-		; A URL is expected in this parameter, we just perform a basic check
-		; TODO make a more robust match
-		if (!regexmatch(vfile, "^((?:http(?:s)?|ftp):\/\/)?((?:[a-z0-9_\-]+\.)+.*$)"))
-			throw {code: ERR_INVALIDVFILE, msg: "Invalid URL`n`nThe version file parameter must point to a 	valid URL."}
+			; This function expects a ZIP file
+			if (!regexmatch(rfile, "\.zip"))
+				throw {code: ERR_INVALIDRFILE, msg: "Invalid Zip`n`nThe remote file parameter must point to a zip file."}
 
-		; This function expects a ZIP file
-		if (!regexmatch(rfile, "\.zip"))
-			throw {code: ERR_INVALIDRFILE, msg: "Invalid Zip`n`nThe remote file parameter must point to a zip file."}
+			; Check if we are connected to the internet
+			http := comobjcreate("WinHttp.WinHttpRequest.5.1")
+			http.Open("GET", "https://www.google.com", true)
+			http.Send()
+			try
+				http.WaitForResponse(1)
+			catch e
+				throw {code: ERR_NOCONNECT, msg: e.message}
 
-		; Check if we are connected to the internet
-		http := comobjcreate("WinHttp.WinHttpRequest.5.1")
-		http.Open("GET", "https://www.google.com", true)
-		http.Send()
-		try
-			http.WaitForResponse(1)
-		catch e
-			throw {code: ERR_NOCONNECT, msg: e.message}
+			Progress, 50, 50/100, % "Checking for updates", % "Updating"
 
-		Progress, 50, 50/100, % "Checking for updates", % "Updating"
+			; Download remote version file
+			http.Open("GET", vfile, true)
+			http.Send(), http.WaitForResponse()
 
-		; Download remote version file
-		http.Open("GET", vfile, true)
-		http.Send(), http.WaitForResponse()
-
-		if !(http.responseText)
-		{
-			Progress, OFF
-			throw {code: ERR_NORESPONSE, msg: "There was an error trying to download the ZIP file.`n"
-											. "The server did not respond."}
-		}
-		m(http.responseText)
-		regexmatch(this.version, "\d+\.\d+\.\d+", loVersion)
-		regexmatch(http.responseText, "\d+\.\d+\.\d+", remVersion)
-
-		Progress, 100, 100/100, % "Checking for updates", % "Updating"
-		sleep 500 	; allow progress to update
-		Progress, OFF
-
-		; Make sure SemVer is used
-		if (!loVersion || !remVersion)
-			throw {code: ERR_INVALIDVER, msg: "Invalid version.`nThis function works with SemVer. "
-											. "For more information refer to the documentation in the function"}
-
-		; Compare against current stated version
-		ver1 := strsplit(loVersion, ".")
-		ver2 := strsplit(remVersion, ".")
-
-		for i1,num1 in ver1
-		{
-			for i2,num2 in ver2
+			if !(http.responseText)
 			{
-				if (newversion)
-					break
+				Progress, OFF
+				throw {code: ERR_NORESPONSE, msg: "There was an error trying to download the ZIP file.`n"
+												. "The server did not respond."}
+			}
+			m(http.responseText)
+			regexmatch(this.version, "\d+\.\d+\.\d+", loVersion)
+			regexmatch(http.responseText, "\d+\.\d+\.\d+", remVersion)
 
-				if (i1 == i2)
-					if (num2 > num1)
-					{
-						newversion := true
+			Progress, 100, 100/100, % "Checking for updates", % "Updating"
+			sleep 500 	; allow progress to update
+			Progress, OFF
+
+			; Make sure SemVer is used
+			if (!loVersion || !remVersion)
+				throw {code: ERR_INVALIDVER, msg: "Invalid version.`nThis function works with SemVer. "
+												. "For more information refer to the documentation in the function"}
+
+			; Compare against current stated version
+			ver1 := strsplit(loVersion, ".")
+			ver2 := strsplit(remVersion, ".")
+
+			for i1,num1 in ver1
+			{
+				for i2,num2 in ver2
+				{
+					if (newversion)
 						break
-					}
-					else
-						newversion := false
+
+					if (i1 == i2)
+						if (num2 > num1)
+						{
+							newversion := true
+							break
+						}
+						else
+							newversion := false
+				}
 			}
-		}
 
-		if (!newversion)
-			throw {code: ERR_CURRENTVER, msg: "You are using the latest version"}
-		else
-		{
-			; If new version ask user what to do
-			; Yes/No | Icon Question | System Modal
-			msgbox % 0x4 + 0x20 + 0x1000
-				 , % "New Update Available"
-				 , % "There is a new update available for this application.`n"
-				   . "Do you wish to upgrade to v" remVersion "?"
-				 , 10	; timeout
-
-			ifmsgbox timeout
-				throw {code: ERR_MSGTIMEOUT, msg: "The Message Box timed out."}
-			ifmsgbox no
-				throw {code: ERR_USRCANCEL, msg: "The user pressed the cancel button."}
-
-			; Create temporal dirs
-			ghubname := (InStr(rfile, "github") ? regexreplace(a_scriptname, "\..*$") "-latest\" : "")
-			filecreatedir % tmpDir := a_temp "\" regexreplace(a_scriptname, "\..*$")
-			filecreatedir % zipDir := tmpDir "\uzip"
-
-			; Create lock file
-			fileappend % a_now, % lockFile := tmpDir "\lock"
-
-			; Download zip file
-			urldownloadtofile % rfile, % tmpDir "\temp.zip"
-
-			; Extract zip file to temporal folder
-			oShell := ComObjCreate("Shell.Application")
-			oDir := oShell.NameSpace(zipDir), oZip := oShell.NameSpace(tmpDir "\temp.zip")
-			oDir.CopyHere(oZip.Items), oShell := oDir := oZip := ""
-
-			filedelete % tmpDir "\temp.zip"
-
-			/*
-			******************************************************
-			* Wait for lock file to be released
-			* Copy all files to current script directory
-			* Cleanup temporal files
-			* Run main script
-			* EOF
-			*******************************************************
-			*/
-			if (a_iscompiled){
-				tmpBatch =
-				(Ltrim
-					:lock
-					if not exist "%lockFile%" goto continue
-					timeout /t 10
-					goto lock
-					:continue
-
-					xcopy "%zipDir%\%ghubname%*.*" "%a_scriptdir%\" /E /C /I /Q /R /K /Y
-					if exist "%a_scriptfullpath%" cmd /C "%a_scriptfullpath%"
-
-					cmd /C "rmdir "%tmpDir%" /S /Q"
-					exit
-				)
-				fileappend % tmpBatch, % tmpDir "\update.bat"
-				run % a_comspec " /c """ tmpDir "\update.bat""",, hide
-			}
+			if (!newversion)
+				throw {code: ERR_CURRENTVER, msg: "You are using the latest version"}
 			else
 			{
-				tmpScript =
-				(Ltrim
-					while (fileExist("%lockFile%"))
-						sleep 10
+				; If new version ask user what to do
+				; Yes/No | Icon Question | System Modal
+				msgbox % 0x4 + 0x20 + 0x1000
+					, % "New Update Available"
+					, % "There is a new update available for this application.`n"
+					. "Do you wish to upgrade to v" remVersion "?"
+					, 10	; timeout
 
-					FileCopyDir %zipDir%\%ghubname%, %a_scriptdir%, true
-					FileRemoveDir %tmpDir%, true
+				ifmsgbox timeout
+					throw {code: ERR_MSGTIMEOUT, msg: "The Message Box timed out."}
+				ifmsgbox no
+					throw {code: ERR_USRCANCEL, msg: "The user pressed the cancel button."}
 
-					if (fileExist("%a_scriptfullpath%"))
-						run %a_scriptfullpath%
-					else
-						msgbox `% 0x10 + 0x1000
-							 , `% "Update Error"
-							 , `% "There was an error while running the updated version.``n"
-								. "Try to run the program manually."
-							 ,  10
-						exitapp
-				)
-				fileappend % tmpScript, % tmpDir "\update.ahk"
-				run % a_ahkpath " " tmpDir "\update.ahk"
+				; Create temporal dirs
+				ghubname := (InStr(rfile, "github") ? regexreplace(a_scriptname, "\..*$") "-latest\" : "")
+				filecreatedir % tmpDir := a_temp "\" regexreplace(a_scriptname, "\..*$")
+				filecreatedir % zipDir := tmpDir "\uzip"
+
+				; Create lock file
+				fileappend % a_now, % lockFile := tmpDir "\lock"
+
+				; Download zip file
+				urldownloadtofile % rfile, % tmpDir "\temp.zip"
+
+				; Extract zip file to temporal folder
+				oShell := ComObjCreate("Shell.Application")
+				oDir := oShell.NameSpace(zipDir), oZip := oShell.NameSpace(tmpDir "\temp.zip")
+				oDir.CopyHere(oZip.Items), oShell := oDir := oZip := ""
+
+				filedelete % tmpDir "\temp.zip"
+
+				/*
+				******************************************************
+				* Wait for lock file to be released
+				* Copy all files to current script directory
+				* Cleanup temporal files
+				* Run main script
+				* EOF
+				*******************************************************
+				*/
+				if (a_iscompiled){
+					tmpBatch =
+					(Ltrim
+						:lock
+						if not exist "%lockFile%" goto continue
+						timeout /t 10
+						goto lock
+						:continue
+
+						xcopy "%zipDir%\%ghubname%*.*" "%a_scriptdir%\" /E /C /I /Q /R /K /Y
+						if exist "%a_scriptfullpath%" cmd /C "%a_scriptfullpath%"
+
+						cmd /C "rmdir "%tmpDir%" /S /Q"
+						exit
+					)
+					fileappend % tmpBatch, % tmpDir "\update.bat"
+					run % a_comspec " /c """ tmpDir "\update.bat""",, hide
+				}
+				else
+				{
+					tmpScript =
+					(Ltrim
+						while (fileExist("%lockFile%"))
+							sleep 10
+
+						FileCopyDir %zipDir%\%ghubname%, %a_scriptdir%, true
+						FileRemoveDir %tmpDir%, true
+
+						if (fileExist("%a_scriptfullpath%"))
+							run %a_scriptfullpath%
+						else
+							msgbox `% 0x10 + 0x1000
+								, `% "Update Error"
+								, `% "There was an error while running the updated version.``n"
+									. "Try to run the program manually."
+								,  10
+							exitapp
+					)
+					fileappend % tmpScript, % tmpDir "\update.ahk"
+					run % a_ahkpath " " tmpDir "\update.ahk"
+				}
+				filedelete % lockFile
+				exitapp
 			}
-			filedelete % lockFile
-			exitapp
+		}
+		else ;;; 
+		{
+			; 1. Update local vfile
+
+			; FileDelete, % this.vfile_local
+			; Error Codes
+			if (!regexmatch(vfile, "^((?:http(?:s)?|ftp):\/\/)?((?:[a-z0-9_\-]+\.)+.*$)"))
+				exception({code: ERR_INVALIDVFILE, msg: "Invalid URL`n`nThe version file parameter must point to a 	valid URL."})
+
+			; This function expects a ZIP file
+			if (!regexmatch(rfile, "\.zip"))
+				exception({code: ERR_INVALIDRFILE, msg: "Invalid Zip`n`nThe remote file parameter must point to a zip file."})
+
+			; A URL is expected in this parameter, we just perform a basic check
+			; TODO make a more robust match
+			if (!regexmatch(vfile, "^((?:http(?:s)?|ftp):\/\/)?((?:[a-z0-9_\-]+\.)+.*$)"))
+				throw {code: ERR_INVALIDVFILE, msg: "Invalid URL`n`nThe version file parameter must point to a 	valid URL."}
+
+			; This function does NOT expect a ZIP file
+			if (rfile="") || (!regexmatch(rfile, "^((?:http(?:s)?|ftp):\/\/)?((?:[a-z0-9_\-]+\.)+.*$)"))
+				throw {code: ERR_INVALIDRFILE, msg: "Invalid URL`n`nThe remote file parameter must point to a valid URL."}
+			; Check if we are connected to the internet
+			http := comobjcreate("WinHttp.WinHttpRequest.5.1")
+			http.Open("GET", "https://www.google.com", true)
+			http.Send()
+			try
+				http.WaitForResponse(1)
+			catch e
+				throw {code: ERR_NOCONNECT, msg: e.message}
+
+			Progress, 50, 50/100, % "Checking for updates", % "Updating"
+
+			; Download remote version file
+			http.Open("GET", vfile, true)
+			http.Send(), http.WaitForResponse()
+
+			if !(http.responseText)
+			{
+				Progress, OFF
+				throw {code: ERR_NORESPONSE, msg: "There was an error trying to download the ZIP file.`n"
+												. "The server did not respond."}
+			}
+  			m(http.responseText)
+			; regexmatch(this.version, "\d+\.\d+\.\d+", loVersion)		;; as this version is not updated automatically, instead read the local version file
+			
+			FileRead, loVersion,% A_ScriptDir "\version.ini"
+			regexmatch(http.responseText, "\d+\.\d+\.\d+", remVersion)
+
+			Progress, 100, 100/100, % "Checking for updates", % "Updating"
+			sleep 500 	; allow progress to update
+			Progress, OFF
+
+			; Make sure SemVer is used
+			if (!loVersion || !remVersion)
+				throw {code: ERR_INVALIDVER, msg: "Invalid version.`nThis function works with SemVer. "
+												. "For more information refer to the documentation in the function"}
+
+			; Compare against current stated version
+			ver1 := strsplit(loVersion, ".")
+			ver2 := strsplit(remVersion, ".")
+
+			for i1,num1 in ver1
+			{
+				for i2,num2 in ver2
+				{
+					if (newversion)
+						break
+
+					if (i1 == i2)
+						if (num2 > num1)
+						{
+							newversion := true
+							break
+						}
+						else
+							newversion := false
+				}
+			}
+
+			if (!newversion)
+				throw {code: ERR_CURRENTVER, msg: "You are using the latest version"}
+			else
+			{
+				; If new version ask user what to do
+				; Yes/No | Icon Question | System Modal
+				msgbox % 0x4 + 0x20 + 0x1000
+					, % "New Update Available"
+					, % "There is a new update available for this application.`n"
+					. "Do you wish to upgrade to v" remVersion "?"
+					, 10	; timeout
+
+				ifmsgbox timeout
+					throw {code: ERR_MSGTIMEOUT, msg: "The Message Box timed out."}
+				ifmsgbox no
+					throw {code: ERR_USRCANCEL, msg: "The user pressed the cancel button."}
+
+				; Create temporal dirs
+				ghubname := (InStr(rfile, "github") ? regexreplace(a_scriptname, "\..*$") "-latest\" : "")
+				filecreatedir % tmpDir := a_temp "\" regexreplace(a_scriptname, "\..*$")
+				filecreatedir % zipDir := tmpDir "\uzip"
+
+				; Create lock file
+				fileappend % a_now, % lockFile := tmpDir "\lock"
+
+				; Download zip file
+				urldownloadtofile % rfile, % clipboard:= tmpDir "\temp.zip"
+
+				; Extract zip file to temporal folder
+				oShell := ComObjCreate("Shell.Application")
+				oDir := oShell.NameSpace(zipDir), oZip := oShell.NameSpace(tmpDir "\temp.zip")
+				oDir.CopyHere(oZip.Items)
+				oShell := oDir := oZip := ""
+
+				filedelete % tmpDir "\temp.zip"
+
+				/*
+				******************************************************
+				* Wait for lock file to be released
+				* Copy all files to current script directory
+				* Cleanup temporal files
+				* Run main script
+				* EOF
+				*******************************************************
+				*/
+				if (a_iscompiled){
+					tmpBatch =
+					(Ltrim
+						:lock
+						if not exist "%lockFile%" goto continue
+						timeout /t 10
+						goto lock
+						:continue
+
+						xcopy "%zipDir%\%ghubname%*.*" "%a_scriptdir%\" /E /C /I /Q /R /K /Y
+						if exist "%a_scriptfullpath%" cmd /C "%a_scriptfullpath%"
+
+						cmd /C "rmdir "%tmpDir%" /S /Q"
+						exit
+					)
+					fileappend % tmpBatch, % tmpDir "\update.bat"
+					run % a_comspec " /c """ tmpDir "\update.bat""",, hide
+				}
+				else
+				{
+					tmpScript =
+					(Ltrim
+						while (fileExist("%lockFile%"))
+							sleep 10
+						FileCopyDir %zipDir%\%ghubname%, %a_scriptdir%, true
+						FileRemoveDir %tmpDir%, true
+
+						if (fileExist("%a_scriptfullpath%"))
+							run %a_scriptfullpath%
+						else
+							msgbox `% 0x10 + 0x1000
+								, `% "Update Error"
+								, `% "There was an error while running the updated version.``n"
+									. "Try to run the program manually."
+								,  10
+							exitapp
+					)
+					fileappend % tmpScript, % tmpDir "\update.ahk"
+					run % a_ahkpath " " tmpDir "\update.ahk"
+				}
+				filedelete % lockFile
+				exitapp
+			}
 		}
 	}
 
@@ -324,7 +514,7 @@ class script
 	{
 		global
 
-		gui, splash: -caption +lastfound +border +alwaysontop +owner
+			gui, splash: -caption +lastfound +border +alwaysontop +owner
 		$hwnd := winexist(), alpha := 0
 		winset, transparent, 0
 
@@ -488,26 +678,78 @@ class script
 						<p>v%version%</p>
 						<hr>
 						<p>by %author%</p>
+		)
+		if ghlink and ghtext
+		{
+			sTmp=
+			(
+
+						<p><a href="https://%ghlink%" target="_blank">%ghtext%</a></p>
+			)
+			html.=sTmp
+		}
+		if doclink and doctext
+		{
+			sTmp=
+			(
+
+						<p><a href="https://%doclink%" target="_blank">%doctext%</a></p>
+			)
+			html.=sTmp
+		}
+		if creditslink and credits
+		{
+			; Clipboard:=html
+			sTmp=
+			(
+
 						<p>credits: <a href="https://%creditslink%" target="_blank">%credits%</a></p>
 						<hr>
+			)
+			html.=sTmp
+		}
+		if forumlink and forumtext
+		{
+			sTmp=
+			(
+
 						<p><a href="https://%forumlink%" target="_blank">%forumtext%</a></p>
-						<p><a href="https://%ghlink%" target="_blank">%ghtext%</a></p>
-						<p><a href="https://%doclink%" target="_blank">%doctext%</a></p>
+			)
+			html.=sTmp
+		}
+		if homepagelink and homepagetext
+		{
+			sTmp=
+			(
+
 						<p><a href="https://%homepagelink%" target="_blank">%homepagetext%</a></p>
-					</div>
+
+			)
+			html.=sTmp
+		}
+		sTmp=
+		(
+
+								</div>
 					%donateSection%
 				</body>
 			</html>
 		)
-
+		html.=sTmp
+		; Clipboard:=html
+		; html.= "`n
+		; (
+		; 	HEllo World
+		; )"
+		; Clipboard:=html
  		btnxPos := 300/2 - 75/2
 		axHight:=12
-		donateHeight := donateLink ? 4 : 0
-		forumHeight := forumlink ? 2 : 0
-		ghHeight := ghlink ? 2 : 0
-		creditsHeight := creditslink ? 2 : 0
-		homepageHeight := homepagelink ? 2 : 0
-		docHeight := doclink ? 2 : 0
+		donateHeight := donateLink ? 6 : 0
+		forumHeight := forumlink ? 1 : 0
+		ghHeight := ghlink ? 1 : 0
+		creditsHeight := creditslink ? 1 : 0
+		homepageHeight := homepagelink ? 1 : 0
+		docHeight := doclink ? 1 : 0
 		axHight+=donateHeight
 		axHight+=forumHeight
 		axHight+=ghHeight
@@ -515,12 +757,12 @@ class script
 		axHight+=homepageHeight
 		axHight+=docHeight
 		gui aboutScript:new, +alwaysontop +toolwindow, % "About " this.name
-		gui margin, 0
+		gui margin, 2
 		gui color, white
 		gui add, activex, w300 r%axHight% vdoc, htmlFile
-		gui add, button, w75 x%btnxPos% gaboutClose, % "Close"
+		gui add, button, w75 x%btnxPos% gaboutClose, % "&Close"
 		doc.write(html)
-		gui show
+		gui show, AutoSize
 		return
 
 		aboutClose:
@@ -653,6 +895,9 @@ class script
 			return err.what ":`n" err.message
 	}
 
+/*
+
+
 	; Activate()
 	; 	{
 	; 	strQuery := this.strEddRootUrl . "?edd_action=activate_license&item_id=" . this.strRequestedProductId . "&license=" . this.strEddLicense . "&url=" . this.strUniqueSystemId
@@ -688,7 +933,123 @@ class script
 	; 	Diag(A_ThisFunc . " strUrl", strUrl, "")
 	; 	return strUrl
 	; 	}
+
+*/
+
+	Load(INI_File:="")
+	{
+		if (INI_File="")
+			INI_File:=this.configfile
+		Result := []
+		OrigWorkDir:=A_WorkingDir
+		if (d_fWriteINI_st_count(INI_File,".ini")>0)
+		{
+			INI_File:=d_fWriteINI_st_removeDuplicates(INI_File,".ini") ;. ".ini" ; reduce number of ".ini"-patterns to 1
+			if (d_fWriteINI_st_count(INI_File,".ini")>0)
+				INI_File:=SubStr(INI_File,1,StrLen(INI_File)-4) ; and remove the last instance
+		}
+		if !FileExist(INI_File) ;; create new INI_File if not existing
+		{
+			SplitPath, INI_File, INI_File_File, INI_File_Dir, INI_File_Ext, INI_File_NNE, INI_File_Drive
+			if !Instr(d:=FileExist(INI_File_Dir),"D:")
+				FileCreateDir, % INI_File_Dir
+			if !FileExist(INI_File_File ".ini") ; check for ini-file file ending
+				FileAppend,, % INI_File ".ini"
+		}
+		SetWorkingDir, INI-Files
+		IniRead, SectionNames, % INI_File ".ini"
+		for each, Section in StrSplit(SectionNames, "`n") {
+			IniRead, OutputVar_Section, % INI_File ".ini", %Section%
+			for each, Haystack in StrSplit(OutputVar_Section, "`n")
+			{
+				If (Instr(Haystack,"="))
+				{
+					RegExMatch(Haystack, "(.*?)=(.*)", $)
+				, Result[Section, $1] := $2
+				}
+				else
+					Result[Section, Result[Section].MaxIndex()+1]:=Haystack
+			}
+		}
+		if A_WorkingDir!=OrigWorkDir
+			SetWorkingDir, %OrigWorkDir%
+		this.config:=Result
+	}
+	Save(INI_File:="")
+	{
+		if (INI_File="")
+			INI_File:=this.configfile
+		SplitPath, INI_File, INI_File_File, INI_File_Dir, INI_File_Ext, INI_File_NNE, INI_File_Drive
+
+		if (d_fWriteINI_st_count(INI_File,".ini")>0)
+		{
+			INI_File:=d_fWriteINI_st_removeDuplicates(INI_File,".ini") ;. ".ini" ; reduce number of ".ini"-patterns to 1
+			if (d_fWriteINI_st_count(INI_File,".ini")>0)
+				INI_File:=SubStr(INI_File,1,StrLen(INI_File)-4) ; and remove the last instance
+		}
+		if !Instr(d:=FileExist(INI_File_Dir),"D:")
+			FileCreateDir, % INI_File_Dir
+		if !FileExist(INI_File_File ".ini") ; check for ini-file file ending
+			FileAppend,, % INI_File ".ini"
+		for SectionName, Entry in this.config
+		{
+			Pairs := ""
+			for Key, Value in Entry
+			{
+				if !Instr(Pairs, "=" Value "`n")
+					Pairs .= Key "=" Value "`n"
+			}
+			IniWrite, %Pairs%, % INI_File ".ini", %SectionName%
+		}
+ 	}
+
+
+
+
 }
+
+	d_fWriteINI_st_removeDuplicates(string, delim="`n")
+	{ ; remove all but the first instance of 'delim' in 'string'
+		; from StringThings-library by tidbit, Version 2.6 (Fri May 30, 2014)
+		/*
+			RemoveDuplicates
+			Remove any and all consecutive lines. A "line" can be determined by
+			the delimiter parameter. Not necessarily just a `r or `n. But perhaps
+			you want a | as your "line".
+
+			string = The text or symbols you want to search for and remove.
+			delim  = The string which defines a "line".
+
+			example: st_removeDuplicates("aaa|bbb|||ccc||ddd", "|")
+			output:  aaa|bbb|ccc|ddd
+		*/
+		delim:=RegExReplace(delim, "([\\.*?+\[\{|\()^$])", "\$1")
+		Return RegExReplace(string, "(" delim ")+", "$1")
+	}
+	d_fWriteINI_st_count(string, searchFor="`n")
+	{ ; count number of occurences of 'searchFor' in 'string'
+		; copy of the normal function to avoid conflicts.
+		; from StringThings-library by tidbit, Version 2.6 (Fri May 30, 2014)
+		/*
+			Count
+			Counts the number of times a tolken exists in the specified string.
+
+			string    = The string which contains the content you want to count.
+			searchFor = What you want to search for and count.
+
+			note: If you're counting lines, you may need to add 1 to the results.
+
+			example: st_count("aaa`nbbb`nccc`nddd", "`n")+1 ; add one to count the last line
+			output:  4
+		*/
+		StringReplace, string, string, %searchFor%, %searchFor%, UseErrorLevel
+		return ErrorLevel
+	}
+
+	
+
+
+
 
 licenseButtonSave(this, CtrlHwnd, GuiEvent, EventInfo, ErrLevel:="")
 {
