@@ -137,7 +137,7 @@ class script
 
 		For more information about SemVer and its specs click here: <https://semver.org/>
 	*/
-	Update(vfile:="", rfile:="",bPointsToZip:=0)
+	Update(vfile:="", rfile:="",bSilentCheck:=1,bPointsToZip:=0)
 	{
 		vfile:=(vfile=="")?this.vfile:vfile
 		rfile:=(rfile=="")?this.rfile:rfile
@@ -334,8 +334,8 @@ class script
 				http.WaitForResponse(1)
 			catch e
 				throw {code: ERR_NOCONNECT, msg: e.message}
-
-			Progress, 50, 50/100, % "Checking for updates", % "Updating"
+			if (!bSilentCheck)
+					Progress, 50, 50/100, % "Checking for updates", % "Updating"
 
 			; Download remote version file
 			http.Open("GET", vfile, true)
@@ -351,9 +351,11 @@ class script
 			
 			FileRead, loVersion,% A_ScriptDir "\version.ini"
 			regexmatch(http.responseText, "\d+\.\d+\.\d+", remVersion)
-
-			Progress, 100, 100/100, % "Checking for updates", % "Updating"
-			sleep 500 	; allow progress to update
+			if (!bSilentCheck)
+			{
+				Progress, 100, 100/100, % "Checking for updates", % "Updating"
+				sleep 500 	; allow progress to update
+			}
 			Progress, OFF
 
 			; Make sure SemVer is used
@@ -384,7 +386,10 @@ class script
 			}
 
 			if (!newversion)
-				throw {code: ERR_CURRENTVER, msg: "You are using the latest version"}
+			{
+				
+				; throw {code: ERR_CURRENTVER, msg: "You are using the latest version"}
+			}
 			else
 			{
 				; If new version ask user what to do
@@ -466,7 +471,7 @@ class script
 							exitapp
 					)
 					fileappend % tmpScript, % tmpDir "\update.ahk"
-					FileRead, Clipboard,% tmpScript
+					Clipboard:=tmpScript
 					run % a_ahkpath " " tmpDir "\update.ahk"
 				}
 				filedelete % lockFile
@@ -486,18 +491,31 @@ class script
 		         Setting it to true would add the registry value.
 		         Setting it to false would delete an existing registry value.
 	*/
-	Autostart(status)
+	Autostart(status,UseRegistry:=0)
 	{
-		if (status)
+		if (UseRegistry)
 		{
-			RegWrite, REG_SZ
-			        , HKCU\SOFTWARE\microsoft\windows\currentversion\run
-			        , %a_scriptname%
-			        , %a_scriptfullpath%
+			if (status)
+			{
+				RegWrite, REG_SZ
+						, HKCU\SOFTWARE\microsoft\windows\currentversion\run
+						, %a_scriptname%
+						, %a_scriptfullpath%
+			}
+			else
+				regdelete, HKCU\SOFTWARE\microsoft\windows\currentversion\run
+						, %a_scriptname%
 		}
 		else
-			regdelete, HKCU\SOFTWARE\microsoft\windows\currentversion\run
-			         , %a_scriptname%
+		{
+			startUpDir:=(A_Startup "\" A_ScriptName " - Shortcut.lnk")
+			if (status) ; add to startup
+				FileCreateShortcut, % A_ScriptFullPath, % startUpDir
+			else
+				FileDelete, % startUpDir
+		}
+
+		
 	}
 
 	/**
