@@ -137,10 +137,8 @@ class script
 
 		For more information about SemVer and its specs click here: <https://semver.org/>
 	*/
-	Update(vfile:="", rfile:="",bSilentCheck:=1,bPointsToZip:=0)
+	Update(vfile:="", rfile:="",bSilentCheck:=true,Backup:=true)
 	{
-		vfile:=(vfile=="")?this.vfile:vfile
-		rfile:=(rfile=="")?this.rfile:rfile
 		; Error Codes
 		static ERR_INVALIDVFILE := 1
 			,ERR_INVALIDRFILE       := 2
@@ -150,166 +148,11 @@ class script
 			,ERR_CURRENTVER         := 6
 			,ERR_MSGTIMEOUT         := 7
 			,ERR_USRCANCEL          := 8
-		if bPointsToZip
-		{ ;; only allow downloading ZIP's
-			; A URL is expected in this parameter, we just perform a basic check
-			; TODO make a more robust match
-			if (!regexmatch(vfile, "^((?:http(?:s)?|ftp):\/\/)?((?:[a-z0-9_\-]+\.)+.*$)"))
-				throw {code: ERR_INVALIDVFILE, msg: "Invalid URL`n`nThe version file parameter must point to a 	valid URL."}
-
-			; This function expects a ZIP file
-			if (!regexmatch(rfile, "\.zip"))
-				throw {code: ERR_INVALIDRFILE, msg: "Invalid Zip`n`nThe remote file parameter must point to a zip file."}
-
-			; Check if we are connected to the internet
-			http := comobjcreate("WinHttp.WinHttpRequest.5.1")
-			http.Open("GET", "https://www.google.com", true)
-			http.Send()
-			try
-				http.WaitForResponse(1)
-			catch e
-				throw {code: ERR_NOCONNECT, msg: e.message}
-
-			Progress, 50, 50/100, % "Checking for updates", % "Updating"
-
-			; Download remote version file
-			http.Open("GET", vfile, true)
-			http.Send(), http.WaitForResponse()
-
-			if !(http.responseText)
-			{
-				Progress, OFF
-				throw {code: ERR_NORESPONSE, msg: "There was an error trying to download the ZIP file.`n"
-												. "The server did not respond."}
-			}
-			regexmatch(this.version, "\d+\.\d+\.\d+", loVersion)
-			regexmatch(http.responseText, "\d+\.\d+\.\d+", remVersion)
-
-			Progress, 100, 100/100, % "Checking for updates", % "Updating"
-			sleep 500 	; allow progress to update
-			Progress, OFF
-
-			; Make sure SemVer is used
-			if (!loVersion || !remVersion)
-				throw {code: ERR_INVALIDVER, msg: "Invalid version.`nThis function works with SemVer. "
-												. "For more information refer to the documentation in the function"}
-
-			; Compare against current stated version
-			ver1 := strsplit(loVersion, ".")
-			ver2 := strsplit(remVersion, ".")
-
-			for i1,num1 in ver1
-			{
-				for i2,num2 in ver2
-				{
-					if (newversion)
-						break
-
-					if (i1 == i2)
-						if (num2 > num1)
-						{
-							newversion := true
-							break
-						}
-						else
-							newversion := false
-				}
-			}
-
-			if (!newversion)
-				throw {code: ERR_CURRENTVER, msg: "You are using the latest version"}
-			else
-			{
-				; If new version ask user what to do
-				; Yes/No | Icon Question | System Modal
-				msgbox % 0x4 + 0x20 + 0x1000
-					, % "New Update Available"
-					, % "There is a new update available for this application.`n"
-					. "Do you wish to upgrade to v" remVersion "?"
-					, 10	; timeout
-
-				ifmsgbox timeout
-					throw {code: ERR_MSGTIMEOUT, msg: "The Message Box timed out."}
-				ifmsgbox no
-					throw {code: ERR_USRCANCEL, msg: "The user pressed the cancel button."}
-
-				; Create temporal dirs
-				ghubname := (InStr(rfile, "github") ? regexreplace(a_scriptname, "\..*$") "-latest\" : "")
-				filecreatedir % tmpDir := a_temp "\" regexreplace(a_scriptname, "\..*$")
-				filecreatedir % zipDir := tmpDir "\uzip"
-
-				; Create lock file
-				fileappend % a_now, % lockFile := tmpDir "\lock"
-
-				; Download zip file
-				urldownloadtofile % rfile, % tmpDir "\temp.zip"
-
-				; Extract zip file to temporal folder
-				oShell := ComObjCreate("Shell.Application")
-				oDir := oShell.NameSpace(zipDir), oZip := oShell.NameSpace(tmpDir "\temp.zip")
-				oDir.CopyHere(oZip.Items), oShell := oDir := oZip := ""
-
-				filedelete % tmpDir "\temp.zip"
-
-				/*
-				******************************************************
-				* Wait for lock file to be released
-				* Copy all files to current script directory
-				* Cleanup temporal files
-				* Run main script
-				* EOF
-				*******************************************************
-				*/
-				if (a_iscompiled){
-					tmpBatch =
-					(Ltrim
-						:lock
-						if not exist "%lockFile%" goto continue
-						timeout /t 10
-						goto lock
-						:continue
-
-						xcopy "%zipDir%\%ghubname%*.*" "%a_scriptdir%\" /E /C /I /Q /R /K /Y
-						if exist "%a_scriptfullpath%" cmd /C "%a_scriptfullpath%"
-
-						cmd /C "rmdir "%tmpDir%" /S /Q"
-						exit
-					)
-					fileappend % tmpBatch, % tmpDir "\update.bat"
-					run % a_comspec " /c """ tmpDir "\update.bat""",, hide
-				}
-				else
-				{
-					tmpScript =
-					(Ltrim
-						while (fileExist("%lockFile%"))
-							sleep 10
-
-						FileCopyDir %zipDir%\%ghubname%, %a_scriptdir%, true
-						FileRemoveDir %tmpDir%, true
-
-						if (fileExist("%a_scriptfullpath%"))
-							run %a_scriptfullpath%
-						else
-							msgbox `% 0x10 + 0x1000
-								, `% "Update Error"
-								, `% "There was an error while running the updated version.``n"
-									. "Try to run the program manually."
-								,  10
-							exitapp
-					)
-					fileappend % tmpScript, % tmpDir "\update.ahk"
-					run % a_ahkpath " " tmpDir "\update.ahk"
-				}
-				filedelete % lockFile
-				exitapp
-			}
-		}
-		else ;;; I guess I don't need this anymore, as GH automatically serves zips.
+		vfile:=(vfile=="")?this.vfile:vfile
+		rfile:=(rfile=="")?this.rfile:rfile
 		{
-			; 1. Update local vfile
-
-			; FileDelete, % this.vfile_local
+			if RegexMatch(vfile,"\d+") || RegexMatch(rfile,"\d+")	 ;; allow skipping of the routine by simply returning here
+				return
 			; Error Codes
 			if (!regexmatch(vfile, "^((?:http(?:s)?|ftp):\/\/)?((?:[a-z0-9_\-]+\.)+.*$)"))
 				exception({code: ERR_INVALIDVFILE, msg: "Invalid URL`n`nThe version file parameter must point to a 	valid URL."})
@@ -318,14 +161,6 @@ class script
 			if (!regexmatch(rfile, "\.zip"))
 				exception({code: ERR_INVALIDRFILE, msg: "Invalid Zip`n`nThe remote file parameter must point to a zip file."})
 
-			; A URL is expected in this parameter, we just perform a basic check
-			; TODO make a more robust match
-			if (!regexmatch(vfile, "^((?:http(?:s)?|ftp):\/\/)?((?:[a-z0-9_\-]+\.)+.*$)"))
-				throw {code: ERR_INVALIDVFILE, msg: "Invalid URL`n`nThe version file parameter must point to a 	valid URL."}
-
-			; This function does NOT expect a ZIP file
-			if (rfile="") || (!regexmatch(rfile, "^((?:http(?:s)?|ftp):\/\/)?((?:[a-z0-9_\-]+\.)+.*$)"))
-				throw {code: ERR_INVALIDRFILE, msg: "Invalid URL`n`nThe remote file parameter must point to a valid URL."}
 			; Check if we are connected to the internet
 			http := comobjcreate("WinHttp.WinHttpRequest.5.1")
 			http.Open("GET", "https://www.google.com", true)
@@ -344,12 +179,15 @@ class script
 			if !(http.responseText)
 			{
 				Progress, OFF
-				throw {code: ERR_NORESPONSE, msg: "There was an error trying to download the ZIP file.`n"
-												. "The server did not respond."}
+				try
+					throw exception("There was an error trying to download the ZIP file for the update.`n","script.Update()","The server did not respond.")
+				Catch, e
+					msgbox, 8240,% this.Name " -  No response from server", % e.Message "`n`nCheck again later`, or contact the author/provider. Script will resume normal operation."
 			}
-			; regexmatch(this.version, "\d+\.\d+\.\d+", loVersion)		;; as this version is not updated automatically, instead read the local version file
+			regexmatch(this.version, "\d+\.\d+\.\d+", loVersion)		;; as this.version is not updated automatically, instead read the local version file
 			
-			FileRead, loVersion,% A_ScriptDir "\version.ini"
+			; FileRead, loVersion,% A_ScriptDir "\version.ini"
+			d:=http.responseText
 			regexmatch(http.responseText, "\d+\.\d+\.\d+", remVersion)
 			if (!bSilentCheck)
 			{
@@ -359,40 +197,54 @@ class script
 			Progress, OFF
 
 			; Make sure SemVer is used
-			if (!loVersion || !remVersion)
-				throw {code: ERR_INVALIDVER, msg: "Invalid version.`nThis function works with SemVer. "
-												. "For more information refer to the documentation in the function"}
-
+ 			if (!loVersion || !remVersion)
+			{
+				try
+					throw exception("Invalid version.`n The update-routine of this script works with SemVer.","script.Update()","For more information refer to the documentation in the file`n" )
+				catch, e
+					msgbox, 8240,% "Invalid Version", % e.What ":" e.Message "`n`n" e.Extra "'" e.File "'."
+			}
 			; Compare against current stated version
 			ver1 := strsplit(loVersion, ".")
 			ver2 := strsplit(remVersion, ".")
-
+			bRemoteIsGreater:=[0,0,0]
+			newversion:=false
 			for i1,num1 in ver1
 			{
 				for i2,num2 in ver2
 				{
-					if (newversion)
-						break
-
 					if (i1 == i2)
+					{
 						if (num2 > num1)
 						{
-							newversion := true
+							bRemoteIsGreater[i1]:=true
 							break
 						}
-						else
-							newversion := false
+						else if (num2 = num1)
+							bRemoteIsGreater[i1]:=false
+						else if (num2 < num1)
+							bRemoteIsGreater[i1]:=-1
+					}
 				}
 			}
-
+			if (!bRemoteIsGreater[1] && !bRemoteIsGreater[2]) ;; denotes in which position (remVersion>loVersion) → 1, (remVersion=loVersion) → 0, (remVersion<loVersion) → -1 
+				if (bRemoteIsGreater[3] && bRemoteIsGreater[3]!=-1)
+					newversion:=true
+			if (bRemoteIsGreater[1] || bRemoteIsGreater[2])
+				newversion:=true
+			if (bRemoteIsGreater[1]=-1)
+				newversion:=false
+			if (bRemoteIsGreater[2]=-1) && (bRemoteIsGreater[1]!=1)
+				newversion:=false
 			if (!newversion)
 			{
-				
-				; throw {code: ERR_CURRENTVER, msg: "You are using the latest version"}
+				if (!bSilentCheck)
+					msgbox, 8256, No new version available, You are using the latest version.`n`nScript will continue running.
+				return
 			}
 			else
 			{
-				; If new version ask user what to do
+				; If new version ask user what to do				"C:\Users\CLAUDI~1\AppData\Local\Temp\AHK_LibraryGUI
 				; Yes/No | Icon Question | System Modal
 				msgbox % 0x4 + 0x20 + 0x1000
 					, % "New Update Available"
@@ -401,81 +253,51 @@ class script
 					, 10	; timeout
 
 				ifmsgbox timeout
-					throw {code: ERR_MSGTIMEOUT, msg: "The Message Box timed out."}
+				{
+					try
+						throw exception("The message box timed out.","script.Update()","Script will not be updated.")
+					Catch, e
+						msgbox, 4144,% this.Name " - " "New Update Available" ,   % e.Message "`nNo user-input received.`n`n" e.Extra "`nResuming normal operation now.`n"
+					return
+				}
 				ifmsgbox no
-					throw {code: ERR_USRCANCEL, msg: "The user pressed the cancel button."}
+				{
+					try
+						throw exception("The user pressed the cancel button.","script.Update()","Script will not be updated.") ;{code: ERR_USRCANCEL, msg: "The user pressed the cancel button."}
+					catch, e
+						msgbox, 4144,% this.Name " - " "New Update Available" ,   % e.Message "`n`n" e.Extra "`nResuming normal operation now.`n"
+					return
+				}
 
 				; Create temporal dirs
 				ghubname := (InStr(rfile, "github") ? regexreplace(a_scriptname, "\..*$") "-latest\" : "")
 				filecreatedir % tmpDir := a_temp "\" regexreplace(a_scriptname, "\..*$")
 				filecreatedir % zipDir := tmpDir "\uzip"
 
-				; Create lock file
-				fileappend % a_now, % lockFile := tmpDir "\lock"
+				; ; Create lock file
+				; fileappend % a_now, % lockFile := tmpDir "\lock"
 
 				; Download zip file
-				urldownloadtofile % rfile, % clipboard:= tmpDir "\temp.zip"
+				urldownloadtofile % rfile, % file:=tmpDir "\temp.zip"
 
 				; Extract zip file to temporal folder
-				oShell := ComObjCreate("Shell.Application")
-				oDir := oShell.NameSpace(zipDir), oZip := oShell.NameSpace(tmpDir "\temp.zip")
-				oDir.CopyHere(oZip.Items)
-				oShell := oDir := oZip := ""
+				shell := ComObjCreate("Shell.Application")
 
-				filedelete % tmpDir "\temp.zip"
+				; Make backup of current folder
+				FileCopyDir,% A_ScriptDir ,% A_ScriptDir "\Backup" loVersion
 
-				/*
-				******************************************************
-				* Wait for lock file to be released
-				* Copy all files to current script directory
-				* Cleanup temporal files
-				* Run main script
-				* EOF
-				*******************************************************
-				*/
-				if (a_iscompiled){
-					tmpBatch =
-					(Ltrim
-						:lock
-						if not exist "%lockFile%" goto continue
-						timeout /t 10
-						goto lock
-						:continue
 
-						xcopy "%zipDir%\%ghubname%*.*" "%a_scriptdir%\" /E /C /I /Q /R /K /Y
-						if exist "%a_scriptfullpath%" cmd /C "%a_scriptfullpath%"
-
-						cmd /C "rmdir "%tmpDir%" /S /Q"
-						exit
-					)
-					fileappend % tmpBatch, % tmpDir "\update.bat"
-					run % a_comspec " /c """ tmpDir "\update.bat""",, hide
-				}
-				else
+				items1 := shell.Namespace(file).Items
+				for item_ in items1
 				{
-					tmpScript =
-					(Ltrim
-						while (fileExist("%lockFile%"))
-							sleep 10
-						FileCopyDir %zipDir%\%ghubname%, %a_scriptdir%, true
-						FileRemoveDir %tmpDir%, true
-
-						if (fileExist("%a_scriptfullpath%"))
-							run %a_scriptfullpath%
-						else
-							msgbox `% 0x10 + 0x1000
-								, `% "Update Error"
-								, `% "There was an error while running the updated version.``n"
-									. "Try to run the program manually."
-								,  10
-							exitapp
-					)
-					fileappend % tmpScript, % tmpDir "\update.ahk"
-					Clipboard:=tmpScript
-					run % a_ahkpath " " tmpDir "\update.ahk"
+					root := item_.Path
+					items:=shell.Namespace(root).Items
+					for item in items
+						shell.NameSpace(A_ScriptDir).CopyHere(item, 0x14)
 				}
-				filedelete % lockFile
-				exitapp
+				MsgBox, 0x40040,,Update Finished
+				FileRemoveDir, % tmpDir,1
+				reload
 			}
 		}
 	}
