@@ -1,0 +1,1 @@
+TBD - when I got time. The templates are in the library, and all functions are mostly properly documented. This will only be done for completion's sake, and only once I got time to do so.
