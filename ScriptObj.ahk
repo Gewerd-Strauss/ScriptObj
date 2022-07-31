@@ -1,15 +1,14 @@
-; last edited by Gewerd Strauss @ 27.11.2021
-; from RaptorX https://github.com/RaptorX/ScriptObj/blob/master/ScriptObj.ahk
+﻿; from RaptorX https://github.com/RaptorX/ScriptObj/blob/master/ScriptObj.ahk
 /**
  * ============================================================================ *
  * @Author           : RaptorX <graptorx@gmail.com>
  * @Script Name      : Script Object
- * @Script Version   : 0.20.3
+ * @Script Version   : 0.21.3
  * @Homepage         :
  *
  * @Creation Date    : November 09, 2020
  * @Modification Date: July 02, 2021
- * @Modification G.S.: 06.2022
+ * @Modification G.S.: 07.2022
  ; @Description Modification G.S.: added field for GitHub-link, a Forum-link 
  								   and a credits-field, as well as a template 
 								   to quickly copy out into new scripts
@@ -21,6 +20,8 @@
 								   remote files so that one can update a 
 								   A_ScriptFullPath-contained script from 
 								   f.e. GH.
+								   Reworked the Update()-Method with help of 
+								   u/anonymous1184.
  * 
  * @Description      :
  * -------------------
@@ -50,30 +51,53 @@
 ; 		email        (opt) - Developer email
 
 ; Template
-; global script := {base         : script
-;                  ,name         : regexreplace(A_ScriptName, "\.\w+")
-;                  ,version      : "0.1.0"
-;                  ,author       : ""
-;                  ,email        : ""
-;                  ,credits      : ""
-;                  ,creditslink  : ""
-;                  ,crtdate      : ""
-;                  ,moddate      : ""
-;                  ,homepagetext : ""
-;                  ,homepagelink : ""
-;                  ,ghlink       : ""
-;                  ,ghtext 		 : ""
-;                  ,doclink      : ""
-;                  ,doctext		 : ""
-;                  ,forumlink    : ""
-;                  ,forumtext	 : ""
-;                  ,donateLink   : ""
-;                  ,resfolder    : A_ScriptDir "\res"
-;                  ,iconfile     : A_ScriptDir "\res\sct.ico"
-;                  ,configfile   : A_ScriptDir "\settings.ini"
-;                  ,configfolder : A_ScriptDir ""
-; 				   }
-
+; FileGetTime, ModDate,%A_ScriptFullPath%,M
+; FileGetTime, CrtDate,%A_ScriptFullPath%,C
+; CrtDate:=SubStr(CrtDate,7,  2) "." SubStr(CrtDate,5,2) "." SubStr(CrtDate,1,4)
+; ModDate:=SubStr(ModDate,7,  2) "." SubStr(ModDate,5,2) "." SubStr(ModDate,1,4)
+; global script := {   base         : script
+;                     ,name         : regexreplace(A_ScriptName, "\.\w+")
+;                     ,version      : FileOpen(A_ScriptDir "\version.ini","r").Read()
+;                     ,author       : "Gewerd Strauss"
+; 					,authorID	  : "Laptop-C"
+; 					,authorlink   : ""
+;                     ,email        : ""
+;                     ,credits      : ""
+; 					,creditslink  : ""
+;                     ,crtdate      : CrtDate
+;                     ,moddate      : ModDate
+;                     ,homepagetext : ""
+;                     ,homepagelink : ""
+;                     ,ghtext 	  : "GH-Repo"
+;                     ,ghlink       : "https://github.com/Gewerd-Strauss/REPOSITORY_NAME"
+;                     ,doctext	  : ""
+;                     ,doclink	  : ""
+;                     ,forumtext	  : ""
+;                     ,forumlink	  : ""
+;                     ,donateLink	  : ""
+;                     ,resfolder    : A_ScriptDir "\res"
+;                     ,iconfile	  : A_ScriptDir "\res\sct.ico"
+; 					,rfile  	  : "https://github.com/Gewerd-Strauss/REPOSITORY_NAME/archive/refs/heads/BRANCH_NAME.zip"
+; 					,vfile_raw	  : "https://raw.githubusercontent.com/Gewerd-Strauss/REPOSITORY_NAME/BRANCH_NAME/version.ini" 
+; 					,vfile 		  : "https://raw.githubusercontent.com/Gewerd-Strauss/REPOSITORY_NAME/BRANCH_NAME/version.ini" 
+; 					,vfile_local  : A_ScriptDir "\version.ini" 
+;                     ,config:		[]
+; 					,configfile   : A_ScriptDir "\INI-Files\" regexreplace(A_ScriptName, "\.\w+") ".ini"
+;                     ,configfolder : A_ScriptDir "\INI-Files"}
+/*	
+	; For throwing errors via script.debug
+	script.Error:={	 Level		:""
+					,Label		:""
+					,Message	:""	
+					,Error		:""		
+					,Vars:		:[]
+					,AddInfo:	:""}
+	if script.error
+		script.Debug(script.error.Level,script.error.Label,script.error.Message,script.error.AddInfo,script.error.Vars)
+*/
+; script.Load()
+; , script.Update(,,) ;; DO NOT ACTIVATE THISLINE UNTIL YOU DUMBO HAS FIXED THE DAMN METHOD. God damn it.
+; Template End
 class script
 {
 	static DBG_NONE     := 0
@@ -113,6 +137,7 @@ class script
 		,rfile		  := ""
 		,vfile		  := ""
 		,dbgLevel     := this.DBG_NONE
+		,versionScObj := "0.21.3"
 
 
 	/**
@@ -149,7 +174,7 @@ class script
 			,ERR_MSGTIMEOUT         := 7
 			,ERR_USRCANCEL          := 8
 		vfile:=(vfile=="")?this.vfile:vfile
-		rfile:=(rfile=="")?this.rfile:rfile
+		,rfile:=(rfile=="")?this.rfile:rfile
 		{
 			if RegexMatch(vfile,"\d+") || RegexMatch(rfile,"\d+")	 ;; allow skipping of the routine by simply returning here
 				return
@@ -163,8 +188,8 @@ class script
 
 			; Check if we are connected to the internet
 			http := comobjcreate("WinHttp.WinHttpRequest.5.1")
-			http.Open("GET", "https://www.google.com", true)
-			http.Send()
+			, http.Open("GET", "https://www.google.com", true)
+			, http.Send()
 			try
 				http.WaitForResponse(1)
 			catch e
@@ -206,9 +231,9 @@ class script
 			}
 			; Compare against current stated version
 			ver1 := strsplit(loVersion, ".")
-			ver2 := strsplit(remVersion, ".")
-			bRemoteIsGreater:=[0,0,0]
-			newversion:=false
+			, ver2 := strsplit(remVersion, ".")
+			, bRemoteIsGreater:=[0,0,0]
+			, newversion:=false
 			for i1,num1 in ver1
 			{
 				for i2,num2 in ver2
@@ -261,48 +286,70 @@ class script
 					return
 				}
 				ifmsgbox no
-				{
-					try
-						throw exception("The user pressed the cancel button.","script.Update()","Script will not be updated.") ;{code: ERR_USRCANCEL, msg: "The user pressed the cancel button."}
-					catch, e
-						msgbox, 4144,% this.Name " - " "New Update Available" ,   % e.Message "`n`n" e.Extra "`nResuming normal operation now.`n"
+				{		;; decide if you want to have this or not. 
+					; try
+					; 	throw exception("The user pressed the cancel button.","script.Update()","Script will not be updated.") ;{code: ERR_USRCANCEL, msg: "The user pressed the cancel button."}
+					; catch, e
+					; 	msgbox, 4144,% this.Name " - " "New Update Available" ,   % e.Message "`n`n" e.Extra "`nResuming normal operation now.`n"
 					return
 				}
 
 				; Create temporal dirs
 				ghubname := (InStr(rfile, "github") ? regexreplace(a_scriptname, "\..*$") "-latest\" : "")
-				filecreatedir % tmpDir := a_temp "\" regexreplace(a_scriptname, "\..*$")
-				filecreatedir % zipDir := tmpDir "\uzip"
+				filecreatedir % Update_Temp := a_temp "\" regexreplace(a_scriptname, "\..*$")
+				filecreatedir % zipDir := Update_Temp "\uzip"
 
 				; ; Create lock file
-				; fileappend % a_now, % lockFile := tmpDir "\lock"
+				; fileappend % a_now, % lockFile := Update_Temp "\lock"
 
 				; Download zip file
-				urldownloadtofile % rfile, % file:=tmpDir "\temp.zip"
+				urldownloadtofile % rfile, % file:=Update_Temp "\temp.zip"
 
 				; Extract zip file to temporal folder
 				shell := ComObjCreate("Shell.Application")
 
 				; Make backup of current folder
-				FileCopyDir,% A_ScriptDir ,% A_ScriptDir "\Backup" loVersion
-
-
-				items1 := shell.Namespace(file).Items
-				for item_ in items1
+				if !Instr(FileExist(Backup_Temp:= A_Temp "\Backup " regexreplace(a_scriptname, "\..*$") " - " StrReplace(loVersion,".","_")),"D")
+					FileCreateDir, % Backup_Temp
+				else
 				{
-					root := item_.Path
-					items:=shell.Namespace(root).Items
-					for item in items
-						shell.NameSpace(A_ScriptDir).CopyHere(item, 0x14)
+					FileDelete, % Backup_Temp
+					FileCreateDir, % Backup_Temp
 				}
-				MsgBox, 0x40040,,Update Finished
-				FileRemoveDir, % tmpDir,1
-				reload
+				; Gui +OwnDialogs
+				MsgBox 0x34, `% this.Name " - " "New Update Available", Last Chance to abort Update.`n`n(also remove this once you're done debugging the updater)`nDo you want to continue the Update?
+				IfMsgBox Yes 
+				{
+					Err:=CopyFilesAndFolders(A_ScriptDir, Backup_Temp,1)
+					, Err2:=CopyFilesAndFolders(Backup_Temp ,A_ScriptDir  ,0)
+					, items1 := shell.Namespace(file).Items
+					for item_ in items1
+					{
+						root := item_.Path
+						, items:=shell.Namespace(root).Items
+						for item in items
+							shell.NameSpace(A_ScriptDir).CopyHere(item, 0x14)
+					}
+					MsgBox, 0x40040,,Update Finished
+					FileRemoveDir, % Backup_Temp,1
+					FileRemoveDir, % Update_Temp,1
+					reload
+				}
+				Else IfMsgBox No
+				{	; no update, cleanup the previously downloaded files from the tmp
+					MsgBox, 0x40040,,Update Aborted
+					FileRemoveDir, % Backup_Temp,1
+					FileRemoveDir, % Update_Temp,1
+
+				}
 			}
 		}
 	}
 
-	/**
+	
+	Autostart(status,UseRegistry:=0)
+	{
+		/**
 		Function: Autostart
 		This Adds the current script to the autorun section for the current
 		user.
@@ -312,9 +359,7 @@ class script
 		         It can be either true or false.
 		         Setting it to true would add the registry value.
 		         Setting it to false would delete an existing registry value.
-	*/
-	Autostart(status,UseRegistry:=0)
-	{
+		*/
 		if (UseRegistry)
 		{
 			if (status)
@@ -340,7 +385,10 @@ class script
 		
 	}
 
-	/**
+	
+	Splash(img:="", speed:=10, pause:=2)
+	{
+		/**
 		Function: Splash
 		Shows a custom image as a splash screen with a simple fading animation
 
@@ -348,9 +396,7 @@ class script
 		img   (opt) - file to be displayed
 		speed (opt) - fast the fading animation will be. Higher value is faster.
 		pause (opt) - long in seconds the image will be paused after fully displayed.
-	*/
-	Splash(img:="", speed:=10, pause:=2)
-	{
+		*/
 		global
 
 			gui, splash: -caption +lastfound +border +alwaysontop +owner
@@ -386,7 +432,10 @@ class script
 		return
 	}
 
-	/**
+	
+	Debug(level:=1, label:=">", msg:="", AddInfo:="",InvocationLine:="", vars*)
+	{
+		/**
 		Funtion: Debug
 		Allows sending conditional debug messages to the debugger and a log file filtered
 		by the current debug level set on the object.
@@ -408,24 +457,39 @@ class script
 		Notes:
 		The point of this function is to have all your debug messages added to your script and filter them out
 		by just setting the object's dbgLevel variable once, which in turn would disable some types of messages.
-	*/
-	Debug(level:=1, label:=">", msg:="", vars*)
-	{
+		*/
+
 		if !this.dbglevel
 			return
-
+		if (InvocationLine!="")
+			DebugInvokedOn:="Source Code: Function invoked on line " RegexReplace(InvocationLine,"\D") "`nError invoked in function body of " " on line " Exception("",-1).Line
 		for i,var in vars
-			varline .= "|" var
+		{
+			if IsObject(var)
+				var:=RegExReplace(Obj2Str(var),"\.\d* = ","")
+			varline .= "`n" var
+		}
+		dbgMessage := label " [invoked on " RegexReplace(InvocationLine,"\D") "]" "`n" DebugInvokedOn "`n>" msg "`n" varline
 
-		dbgMessage := label ">" msg "`n" varline
-
-		if (level <= this.dbglevel)
+ 		if (level <= this.dbglevel)
 			outputdebug % dbgMessage
-		if (this.dbgFile)
+		else if this.dbgFile
 			FileAppend, % dbgMessage, % this.dbgFile
+		else
+			MsgBox 0x10, % this.Name " - " "Error encountered: " this.Error.Error , % Clipboard:=dbgmessage
+			; script.Error:={	 Level		:""
+            ;     ,Label		:""
+            ;     ,Message	:""	
+            ;     ,Error		:""		
+            ;     ,Vars		:[]
+            ;     ,AddInfo	:""}
+		script.ErrorCache[A_Now]:=script.Error
 	}
 
-	/**
+	
+	About(scriptName:="", version:="", author:="",credits:="", homepagetext:="", homepagelink:="", donateLink:="", email:="")
+	{
+		/**
 		Function: About
 		Shows a quick HTML Window based on the object's variable information
 
@@ -452,26 +516,24 @@ class script
 		The function will try to infer the paramters if they are blank by checking
 		the class variables if provided. This allows you to set all information once
 		when instatiating the class, and the about GUI will be filled out automatically.
-	*/
-	About(scriptName:="", version:="", author:="",credits:="", homepagetext:="", homepagelink:="", donateLink:="", email:="")
-	{
+		*/
 		static doc
 
 		scriptName := scriptName ? scriptName : this.name
-		version := version ? version : this.version
-		author := author ? author : this.author
-		credits := credits ? credits : this.credits
-		creditslink := creditslink ? creditslink : RegExReplace(this.creditslink, "http(s)?:\/\/")
-		ghtext := ghtext ? ghtext : RegExReplace(this.ghtext, "http(s)?:\/\/")
-		ghlink := ghlink ? ghlink : RegExReplace(this.ghlink, "http(s)?:\/\/")
-		doctext := doctext ? doctext : RegExReplace(this.doctext, "http(s)?:\/\/")
-		doclink := doclink ? doclink : RegExReplace(this.doclink, "http(s)?:\/\/")
-		forumtext := forumtext ? forumtext : RegExReplace(this.forumtext, "http(s)?:\/\/")
-		forumlink := forumlink ? forumlink : RegExReplace(this.forumlink, "http(s)?:\/\/")
-		homepagetext := homepagetext ? homepagetext : RegExReplace(this.homepagetext, "http(s)?:\/\/")
-		homepagelink := homepagelink ? homepagelink : RegExReplace(this.homepagelink, "http(s)?:\/\/")
-		donateLink := donateLink ? donateLink : RegExReplace(this.donateLink, "http(s)?:\/\/")
-		email := email ? email : this.email
+		, version := version ? version : this.version
+		, author := author ? author : this.author
+		, credits := credits ? credits : this.credits
+		, creditslink := creditslink ? creditslink : RegExReplace(this.creditslink, "http(s)?:\/\/")
+		, ghtext := ghtext ? ghtext : RegExReplace(this.ghtext, "http(s)?:\/\/")
+		, ghlink := ghlink ? ghlink : RegExReplace(this.ghlink, "http(s)?:\/\/")
+		, doctext := doctext ? doctext : RegExReplace(this.doctext, "http(s)?:\/\/")
+		, doclink := doclink ? doclink : RegExReplace(this.doclink, "http(s)?:\/\/")
+		, forumtext := forumtext ? forumtext : RegExReplace(this.forumtext, "http(s)?:\/\/")
+		, forumlink := forumlink ? forumlink : RegExReplace(this.forumlink, "http(s)?:\/\/")
+		, homepagetext := homepagetext ? homepagetext : RegExReplace(this.homepagetext, "http(s)?:\/\/")
+		, homepagelink := homepagelink ? homepagelink : RegExReplace(this.homepagelink, "http(s)?:\/\/")
+		, donateLink := donateLink ? donateLink : RegExReplace(this.donateLink, "http(s)?:\/\/")
+		, email := email ? email : this.email
 
  		if (donateLink)
 		{
@@ -582,19 +644,19 @@ class script
 		; )"
 		; Clipboard:=html
  		btnxPos := 300/2 - 75/2
-		axHight:=12
-		donateHeight := donateLink ? 6 : 0
-		forumHeight := forumlink ? 1 : 0
-		ghHeight := ghlink ? 1 : 0
-		creditsHeight := creditslink ? 1 : 0
-		homepageHeight := homepagelink ? 1 : 0
-		docHeight := doclink ? 1 : 0
-		axHight+=donateHeight
-		axHight+=forumHeight
-		axHight+=ghHeight
-		axHight+=creditsHeight
-		axHight+=homepageHeight
-		axHight+=docHeight
+		, axHight:=12
+		, donateHeight := donateLink ? 6 : 0
+		, forumHeight := forumlink ? 1 : 0
+		, ghHeight := ghlink ? 1 : 0
+		, creditsHeight := creditslink ? 1 : 0
+		, homepageHeight := homepagelink ? 1 : 0
+		, docHeight := doclink ? 1 : 0
+		, axHight+=donateHeight
+		, axHight+=forumHeight
+		, axHight+=ghHeight
+		, axHight+=creditsHeight
+		, axHight+=homepageHeight
+		, axHight+=docHeight
 		gui aboutScript:new, +alwaysontop +toolwindow, % "About " this.name
 		gui margin, 2
 		gui color, white
@@ -609,13 +671,14 @@ class script
 		return
 	}
 
-	/*
+	
+	GetLicense()
+	{
+		/*
 		Function: GetLicense
 		Parameters:
 		Notes:
-	*/
-	GetLicense()
-	{
+		*/
 		global
 
 		this.systemID := this.GetSystemID()
@@ -655,13 +718,14 @@ class script
 		       ,"number"  : License}
 	}
 
-	/*
+	
+	SaveLicense(licenseType, licenseNumber)
+	{
+		/*
 		Function: SaveLicense
 		Parameters:
 		Notes:
-	*/
-	SaveLicense(licenseType, licenseNumber)
-	{
+		*/
 		cleanName := RegexReplace(A_ScriptName, "\..*$")
 
 		Try
@@ -680,13 +744,14 @@ class script
 			return false
 	}
 
-	/*
+	
+	IsLicenceValid(licenseType, licenseNumber, URL)
+	{
+		/*
 		Function: IsLicenceValid
 		Parameters:
 		Notes:
-	*/
-	IsLicenceValid(licenseType, licenseNumber, URL)
-	{
+		*/
 		res := this.EDDRequest(URL, "check_license", licenseType ,licenseNumber)
 
 		if InStr(res, """license"":""inactive""")
@@ -705,13 +770,14 @@ class script
 		return Computer.SerialNumber
 	}
 
-	/*
+	
+	EDDRequest(URL, Action, licenseType, licenseNumber)
+	{
+		/*
 		Function: EDDRequest
 		Parameters:
 		Notes:
-	*/
-	EDDRequest(URL, Action, licenseType, licenseNumber)
-	{
+		*/
 		strQuery := url "?edd_action=" Action
 		         .  "&item_id=" licenseType
 		         .  "&license=" licenseNumber
@@ -720,13 +786,12 @@ class script
 		try
 		{
 			http := ComObjCreate("WinHttp.WinHttpRequest.5.1")
-			http.Open("GET", strQuery)
-			http.SetRequestHeader("Pragma", "no-cache")
-			http.SetRequestHeader("Cache-Control", "no-cache, no-store")
-			http.SetRequestHeader("User-Agent", "Mozilla/4.0 (compatible; Win32)")
-
-			http.Send()
-			http.WaitForResponse()
+			, http.Open("GET", strQuery)
+			, http.SetRequestHeader("Pragma", "no-cache")
+			, http.SetRequestHeader("Cache-Control", "no-cache, no-store")
+			, http.SetRequestHeader("User-Agent", "Mozilla/4.0 (compatible; Win32)")
+			, http.Send()
+			, http.WaitForResponse()
 
 			return http.responseText
 		}
@@ -780,7 +845,7 @@ class script
 		if (INI_File="")
 			INI_File:=this.configfile
 		Result := []
-		OrigWorkDir:=A_WorkingDir
+		, OrigWorkDir:=A_WorkingDir
 		if (d_fWriteINI_st_count(INI_File,".ini")>0)
 		{
 			INI_File:=d_fWriteINI_st_removeDuplicates(INI_File,".ini") ;. ".ini" ; reduce number of ".ini"-patterns to 1
@@ -847,43 +912,43 @@ class script
 
 }
 
-	d_fWriteINI_st_removeDuplicates(string, delim="`n")
-	{ ; remove all but the first instance of 'delim' in 'string'
-		; from StringThings-library by tidbit, Version 2.6 (Fri May 30, 2014)
-		/*
-			RemoveDuplicates
-			Remove any and all consecutive lines. A "line" can be determined by
-			the delimiter parameter. Not necessarily just a `r or `n. But perhaps
-			you want a | as your "line".
+d_fWriteINI_st_removeDuplicates(string, delim="`n")
+{ ; remove all but the first instance of 'delim' in 'string'
+	; from StringThings-library by tidbit, Version 2.6 (Fri May 30, 2014)
+	/*
+		RemoveDuplicates
+		Remove any and all consecutive lines. A "line" can be determined by
+		the delimiter parameter. Not necessarily just a `r or `n. But perhaps
+		you want a | as your "line".
 
-			string = The text or symbols you want to search for and remove.
-			delim  = The string which defines a "line".
+		string = The text or symbols you want to search for and remove.
+		delim  = The string which defines a "line".
 
-			example: st_removeDuplicates("aaa|bbb|||ccc||ddd", "|")
-			output:  aaa|bbb|ccc|ddd
-		*/
-		delim:=RegExReplace(delim, "([\\.*?+\[\{|\()^$])", "\$1")
-		Return RegExReplace(string, "(" delim ")+", "$1")
-	}
-	d_fWriteINI_st_count(string, searchFor="`n")
-	{ ; count number of occurences of 'searchFor' in 'string'
-		; copy of the normal function to avoid conflicts.
-		; from StringThings-library by tidbit, Version 2.6 (Fri May 30, 2014)
-		/*
-			Count
-			Counts the number of times a tolken exists in the specified string.
+		example: st_removeDuplicates("aaa|bbb|||ccc||ddd", "|")
+		output:  aaa|bbb|ccc|ddd
+	*/
+	delim:=RegExReplace(delim, "([\\.*?+\[\{|\()^$])", "\$1")
+	Return RegExReplace(string, "(" delim ")+", "$1")
+}
+d_fWriteINI_st_count(string, searchFor="`n")
+{ ; count number of occurences of 'searchFor' in 'string'
+	; copy of the normal function to avoid conflicts.
+	; from StringThings-library by tidbit, Version 2.6 (Fri May 30, 2014)
+	/*
+		Count
+		Counts the number of times a tolken exists in the specified string.
 
-			string    = The string which contains the content you want to count.
-			searchFor = What you want to search for and count.
+		string    = The string which contains the content you want to count.
+		searchFor = What you want to search for and count.
 
-			note: If you're counting lines, you may need to add 1 to the results.
+		note: If you're counting lines, you may need to add 1 to the results.
 
-			example: st_count("aaa`nbbb`nccc`nddd", "`n")+1 ; add one to count the last line
-			output:  4
-		*/
-		StringReplace, string, string, %searchFor%, %searchFor%, UseErrorLevel
-		return ErrorLevel
-	}
+		example: st_count("aaa`nbbb`nccc`nddd", "`n")+1 ; add one to count the last line
+		output:  4
+	*/
+	StringReplace, string, string, %searchFor%, %searchFor%, UseErrorLevel
+	return ErrorLevel
+}
 
 	
 
@@ -920,4 +985,23 @@ licenseButtonCancel(CtrlHwnd, GuiEvent, EventInfo, ErrLevel:="")
 	      , % "This program cannot run without a license."
 
 	ExitApp, 1
+}
+
+
+CopyFilesAndFolders(SourcePattern, DestinationFolder, DoOverwrite = false)
+{
+	; Copies all files and folders matching SourcePattern into the folder named DestinationFolder and
+	; returns the number of files/folders that could not be copied.
+    ; First copy all the files (but not the folders):
+    ; FileCopy, %SourcePattern%, %DestinationFolder%, %DoOverwrite%
+    ; ErrorCount := ErrorLevel
+    ; Now copy all the folders:
+    Loop, %SourcePattern%, 2  ; 2 means "retrieve folders only".
+    {
+        FileCopyDir, % A_LoopFileFullPath, % DestinationFolder "\" A_LoopFileName , % DoOverwrite
+        ErrorCount += ErrorLevel
+        if ErrorLevel  ; Report each problem folder by name.
+            MsgBox,% "Could not copy " A_LoopFileFullPath " into %DestinationFolder."
+    }
+    return ErrorCount
 }
