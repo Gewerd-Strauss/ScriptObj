@@ -8,20 +8,26 @@
  *
  * @Creation Date    : November 09, 2020
  * @Modification Date: July 02, 2021
- * @Modification G.S.: 07.2022
- ; @Description Modification G.S.: added field for GitHub-link, a Forum-link 
- 								   and a credits-field, as well as a template 
-								   to quickly copy out into new scripts
-								   Contains methods for saving and loading 
-								   config-files containing an array - 
-								   basically an integration of Wolf_II's
-								   WriteIni/ReadIni with some adjustments
-								   added Update()-functionality for non-zipped
-								   remote files so that one can update a 
-								   A_ScriptFullPath-contained script from 
-								   f.e. GH.
-								   Reworked the Update()-Method with help of 
-								   u/anonymous1184.
+ * @Modification G.S.: 08.2022
+ ; @Description Modification G.S.:
+	- added field for GitHub-link, a Forum-link 
+	  and a credits-field, as well as a template 
+	  to quickly copy out into new scripts
+	  Contains methods for saving and loading 
+	  config-files containing an array - 
+	  basically an integration of Wolf_II's
+	  WriteIni/ReadIni with some adjustments
+	  added Update()-functionality for non-zipped
+	  remote files so that one can update a 
+	  A_ScriptFullPath-contained script from 
+	  f.e. GH.
+	- Reworked the Update()-Method with help of 
+	  u/anonymous1184.
+	- Added filter to not engange Update-method 
+	  if vfile contains the words "REPOSITORY_NAME" 
+	  or "BRANCH_NAME", indicating a template has
+	  not been adjusted yet - or is not intended to
+								
  * 
  * @Description      :
  * -------------------
@@ -50,7 +56,18 @@
 ; 		donateLink   (opt) - Link to a donation site
 ; 		email        (opt) - Developer email
 
-; Template
+; /Template_Start
+/*
+for creditsRaw, use "/" in the "URL"-field when the snippet is not published yet (e.g. for code you've written yourself and not published yet)
+space author, SnippetNameX and URLX out by spaces or tabs, and remember to include "-" inbetween both fields
+when 2+ snippets are located at the same url, concatenate them with "|" and treat them as a single one when putting together the URL's descriptor string
+finally, make sure toingest 'CreditsRaw' into the 'credits'-field of the template below.
+*/
+; CreditsRaw=
+; (LTRIM
+; author1   -		 snippetName1		   		  			-	URL1
+; Gewerd Strauss		- snippetName2|SnippetName3 (both at the same URL)								-	/
+; )
 ; FileGetTime, ModDate,%A_ScriptFullPath%,M
 ; FileGetTime, CrtDate,%A_ScriptFullPath%,C
 ; CrtDate:=SubStr(CrtDate,7,  2) "." SubStr(CrtDate,5,2) "." SubStr(CrtDate,1,4)
@@ -62,21 +79,21 @@
 ; 					,authorID	  : "Laptop-C"
 ; 					,authorlink   : ""
 ;                     ,email        : ""
-;                     ,credits      : ""
+;                     ,credits      : CreditsRaw
 ; 					,creditslink  : ""
 ;                     ,crtdate      : CrtDate
 ;                     ,moddate      : ModDate
 ;                     ,homepagetext : ""
 ;                     ,homepagelink : ""
 ;                     ,ghtext 	  : "GH-Repo"
-;                     ,ghlink       : "https://github.com/Gewerd-Strauss/REPOSITORY_NAME"
+;                     ,ghlink       : "httaps://github.com/Gewerd-Strauss/REPOSITORY_NAME"
 ;                     ,doctext	  : ""
 ;                     ,doclink	  : ""
 ;                     ,forumtext	  : ""
 ;                     ,forumlink	  : ""
 ;                     ,donateLink	  : ""
 ;                     ,resfolder    : A_ScriptDir "\res"
-;                     ,iconfile	  : A_ScriptDir "\res\sct.ico"
+;                     ,iconfile	  : ""
 ; 					,rfile  	  : "https://github.com/Gewerd-Strauss/REPOSITORY_NAME/archive/refs/heads/BRANCH_NAME.zip"
 ; 					,vfile_raw	  : "https://raw.githubusercontent.com/Gewerd-Strauss/REPOSITORY_NAME/BRANCH_NAME/version.ini" 
 ; 					,vfile 		  : "https://raw.githubusercontent.com/Gewerd-Strauss/REPOSITORY_NAME/BRANCH_NAME/version.ini" 
@@ -97,7 +114,7 @@
 */
 ; script.Load()
 ; , script.Update(,,) ;; DO NOT ACTIVATE THISLINE UNTIL YOU DUMBO HAS FIXED THE DAMN METHOD. God damn it.
-; Template End
+; /Template_End
 class script
 {
 	static DBG_NONE     := 0
@@ -162,7 +179,7 @@ class script
 
 		For more information about SemVer and its specs click here: <https://semver.org/>
 	*/
-	Update(vfile:="", rfile:="",bSilentCheck:=true,Backup:=true)
+	Update(vfile:="", rfile:="",bSilentCheck:=false,Backup:=true)
 	{
 		; Error Codes
 		static ERR_INVALIDVFILE := 1
@@ -179,6 +196,8 @@ class script
 			if RegexMatch(vfile,"\d+") || RegexMatch(rfile,"\d+")	 ;; allow skipping of the routine by simply returning here
 				return
 			; Error Codes
+			if  (regexmatch(vfile, "(REPOSITORY_NAME|BRANCH_NAME)"))
+				return
 			if (!regexmatch(vfile, "^((?:http(?:s)?|ftp):\/\/)?((?:[a-z0-9_\-]+\.)+.*$)"))
 				exception({code: ERR_INVALIDVFILE, msg: "Invalid URL`n`nThe version file parameter must point to a 	valid URL."})
 
@@ -518,7 +537,6 @@ class script
 		when instatiating the class, and the about GUI will be filled out automatically.
 		*/
 		static doc
-
 		scriptName := scriptName ? scriptName : this.name
 		, version := version ? version : this.version
 		, author := author ? author : this.author
@@ -534,7 +552,7 @@ class script
 		, homepagelink := homepagelink ? homepagelink : RegExReplace(this.homepagelink, "http(s)?:\/\/")
 		, donateLink := donateLink ? donateLink : RegExReplace(this.donateLink, "http(s)?:\/\/")
 		, email := email ? email : this.email
-
+		
  		if (donateLink)
 		{
 			donateSection =
@@ -598,15 +616,40 @@ class script
 			)
 			html.=sTmp
 		}
-		if creditslink and credits
+		if (creditslink and credits) || IsObject(credits) || RegexMatch(credits,"(?<Author>(\w|)*)(\s*\-\s*)(?<Snippet>(\w|\|)*)\s*\-\s*(?<URL>.*)")
 		{
-			; Clipboard:=html
-			sTmp=
-			(
-
-						<p>credits: <a href="https://%creditslink%" target="_blank">%credits%</a></p>
-						<hr>
-			)
+			if RegexMatch(credits,"(?<Author>(\w|)*)(\s*\-\s*)(?<Snippet>(\w|\|)*)\s*\-\s*(?<URL>.*)")
+			{
+				CreditsLines:=strsplit(credits,"`n")
+				Credits:={}
+				for k,v in CreditsLines
+				{
+					val:=strsplit(strreplace(v,"`t"," ")," - ")
+					Credits[Trim(val.2)]:=Trim(val.1) "|" Trim((strlen(val.3)>5?val.3:""))
+				}
+			}
+			if IsObject(credits)
+			{
+				CreditsAssembly:="credits for used code:`n"
+				for k,v in credits
+				{
+					if (k="")
+						continue
+					if (strsplit(v,"|").2="")
+						CreditsAssembly.="<p>" k " - " strsplit(v,"|").1 "`n"
+					else
+						CreditsAssembly.="<p><a href=" """" strsplit(v,"|").2 """" ">" k " - " strsplit(v,"|").1 "</a></p>`n"
+				}
+				html.=CreditsAssembly
+			}
+			else
+			{
+				sTmp=
+				(
+							<p>credits: <a href="https://%creditslink%" target="_blank">%credits%</a></p>
+							<hr>
+				)
+			}
 			html.=sTmp
 		}
 		if forumlink and forumtext
@@ -637,18 +680,13 @@ class script
 			</html>
 		)
 		html.=sTmp
-		; Clipboard:=html
-		; html.= "`n
-		; (
-		; 	HEllo World
-		; )"
-		; Clipboard:=html
  		btnxPos := 300/2 - 75/2
 		, axHight:=12
 		, donateHeight := donateLink ? 6 : 0
 		, forumHeight := forumlink ? 1 : 0
 		, ghHeight := ghlink ? 1 : 0
 		, creditsHeight := creditslink ? 1 : 0
+		, creditsHeight+=credits.Count()*1.5 ; + d:=(credits.Count()>0?2.5:0)
 		, homepageHeight := homepagelink ? 1 : 0
 		, docHeight := doclink ? 1 : 0
 		, axHight+=donateHeight
@@ -657,6 +695,8 @@ class script
 		, axHight+=creditsHeight
 		, axHight+=homepageHeight
 		, axHight+=docHeight
+		if (axHight="")
+			axHight:=12
 		gui aboutScript:new, +alwaysontop +toolwindow, % "About " this.name
 		gui margin, 2
 		gui color, white
@@ -678,8 +718,7 @@ class script
 		Function: GetLicense
 		Parameters:
 		Notes:
-		*/
-		global
+		*CreditsRaw		global
 
 		this.systemID := this.GetSystemID()
 		cleanName := RegexReplace(A_ScriptName, "\..*$")
@@ -900,7 +939,8 @@ class script
 			Pairs := ""
 			for Key, Value in Entry
 			{
-				if !Instr(Pairs, "=" Value "`n")
+				WriteInd++
+				if !Instr(Pairs,Key "=" Value "`n")
 					Pairs .= Key "=" Value "`n"
 			}
 			IniWrite, %Pairs%, % INI_File ".ini", %SectionName%
@@ -1001,7 +1041,7 @@ CopyFilesAndFolders(SourcePattern, DestinationFolder, DoOverwrite = false)
         FileCopyDir, % A_LoopFileFullPath, % DestinationFolder "\" A_LoopFileName , % DoOverwrite
         ErrorCount += ErrorLevel
         if ErrorLevel  ; Report each problem folder by name.
-            MsgBox,% "Could not copy " A_LoopFileFullPath " into %DestinationFolder."
+            MsgBox,% "Could not copy " A_LoopFileFullPath " into " DestinationFolder "."
     }
     return ErrorCount
 }
