@@ -3,11 +3,11 @@
  * ============================================================================ *
  * @Author           : RaptorX <graptorx@gmail.com>
  * @Script Name      : Script Object
- * @Script Version   : 0.21.3
+ * @Script Version   : 0.22.3
  * @Homepage         :
  *
  * @Creation Date    : November 09, 2020
- * @Modification Date: July 02, 2021
+ * @Modification Date: September 02, 2021
  * @Modification G.S.: 08.2022
  ; @Description Modification G.S.:
 	- added field for GitHub-link, a Forum-link 
@@ -86,7 +86,7 @@ finally, make sure toingest 'CreditsRaw' into the 'credits'-field of the templat
 ;                     ,homepagetext : ""
 ;                     ,homepagelink : ""
 ;                     ,ghtext 	  : "GH-Repo"
-;                     ,ghlink       : "httaps://github.com/Gewerd-Strauss/REPOSITORY_NAME"
+;                     ,ghlink       : "https://github.com/Gewerd-Strauss/REPOSITORY_NAME"
 ;                     ,doctext	  : ""
 ;                     ,doclink	  : ""
 ;                     ,forumtext	  : ""
@@ -196,10 +196,12 @@ class script
 			if RegexMatch(vfile,"\d+") || RegexMatch(rfile,"\d+")	 ;; allow skipping of the routine by simply returning here
 				return
 			; Error Codes
-			if  (regexmatch(vfile, "(REPOSITORY_NAME|BRANCH_NAME)"))
+			if (vfile="") 											;; disregard empty vfiles
 				return
 			if (!regexmatch(vfile, "^((?:http(?:s)?|ftp):\/\/)?((?:[a-z0-9_\-]+\.)+.*$)"))
 				exception({code: ERR_INVALIDVFILE, msg: "Invalid URL`n`nThe version file parameter must point to a 	valid URL."})
+			if  (regexmatch(vfile, "(REPOSITORY_NAME|BRANCH_NAME)"))
+				Return												;; let's not throw an error when this happens because fixing it is irrelevant to development in 95% of all cases
 
 			; This function expects a ZIP file
 			if (!regexmatch(rfile, "\.zip"))
