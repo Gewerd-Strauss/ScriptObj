@@ -3,7 +3,7 @@
  * ============================================================================ *
  * @Author           : RaptorX <graptorx@gmail.com>
  * @Script Name      : Script Object
- * @Script Version   : 0.22.3
+ * @Script Version   : 0.23.3
  * @Homepage         :
  *
  * @Creation Date    : November 09, 2020
@@ -27,6 +27,9 @@
 	  if vfile contains the words "REPOSITORY_NAME" 
 	  or "BRANCH_NAME", indicating a template has
 	  not been adjusted yet - or is not intended to
+	- added autoformatting for ingesting credits via
+	  the "CreditsRaw"-continuation-section in the 
+	  template below
 								
  * 
  * @Description      :
@@ -487,7 +490,7 @@ class script
 		for i,var in vars
 		{
 			if IsObject(var)
-				var:=RegExReplace(Obj2Str(var),"\.\d* = ","")
+				var:=RegExReplace(ScriptObj_Obj2Str(var),"\.\d* = ","")
 			varline .= "`n" var
 		}
 		dbgMessage := label " [invoked on " RegexReplace(InvocationLine,"\D") "]" "`n" DebugInvokedOn "`n>" msg "`n" varline
@@ -618,6 +621,7 @@ class script
 			)
 			html.=sTmp
 		}
+		Clipboard:=html
 		if (creditslink and credits) || IsObject(credits) || RegexMatch(credits,"(?<Author>(\w|)*)(\s*\-\s*)(?<Snippet>(\w|\|)*)\s*\-\s*(?<URL>.*)")
 		{
 			if RegexMatch(credits,"(?<Author>(\w|)*)(\s*\-\s*)(?<Snippet>(\w|\|)*)\s*\-\s*(?<URL>.*)")
@@ -626,15 +630,19 @@ class script
 				Credits:={}
 				for k,v in CreditsLines
 				{
+					if ((InStr(v,"author1") && InStr(v,"snippetName1") && InStr(v,"URL1")) || (InStr(v,"snippetName2|snippetName3")))
+						continue
 					val:=strsplit(strreplace(v,"`t"," ")," - ")
 					Credits[Trim(val.2)]:=Trim(val.1) "|" Trim((strlen(val.3)>5?val.3:""))
 				}
 			}
+			Clipboard:=html
 			if IsObject(credits)
 			{
 				CreditsAssembly:="credits for used code:`n"
 				for k,v in credits
 				{
+					; if Instr()
 					if (k="")
 						continue
 					if (strsplit(v,"|").2="")
@@ -643,6 +651,7 @@ class script
 						CreditsAssembly.="<p><a href=" """" strsplit(v,"|").2 """" ">" k " - " strsplit(v,"|").1 "</a></p>`n"
 				}
 				html.=CreditsAssembly
+				Clipboard:=html
 			}
 			else
 			{
@@ -651,8 +660,9 @@ class script
 							<p>credits: <a href="https://%creditslink%" target="_blank">%credits%</a></p>
 							<hr>
 				)
+				html.=sTmp
 			}
-			html.=sTmp
+			Clipboard:=html
 		}
 		if forumlink and forumtext
 		{
@@ -662,6 +672,7 @@ class script
 						<p><a href="https://%forumlink%" target="_blank">%forumtext%</a></p>
 			)
 			html.=sTmp
+			Clipboard:=html
 		}
 		if homepagelink and homepagetext
 		{
@@ -672,6 +683,7 @@ class script
 
 			)
 			html.=sTmp
+			Clipboard:=html
 		}
 		sTmp=
 		(
@@ -889,49 +901,56 @@ class script
 		, OrigWorkDir:=A_WorkingDir
 		if (d_fWriteINI_st_count(INI_File,".ini")>0)
 		{
-			INI_File:=d_fWriteINI_st_removeDuplicates(INI_File,".ini") ;. ".ini" ; reduce number of ".ini"-patterns to 1
+			INI_File:=d_fWriteINI_st_removeDuplicates(INI_File,".ini") ;. ".ini" ;; reduce number of ".ini"-patterns to 1
 			if (d_fWriteINI_st_count(INI_File,".ini")>0)
-				INI_File:=SubStr(INI_File,1,StrLen(INI_File)-4) ; and remove the last instance
+				INI_File:=SubStr(INI_File,1,StrLen(INI_File)-4) ;		 and remove the last instance
 		}
-		if !FileExist(INI_File) ;; create new INI_File if not existing
+		if (this.config.MaxIndex()>0 && this.config.MaxIndex()!="")	;; only run this routine when the config actually contains values and is not simply an empty file.
 		{
+			if !FileExist(INI_File) ;; create new INI_File if not existing
+			{
+				msgbox, 8240,% this.Name " -  No Save File found", % e.Message "`n`nNo save file was found.`nPlease reinitialise settings if possible."
+				return
+			}
 			SplitPath, INI_File, INI_File_File, INI_File_Dir, INI_File_Ext, INI_File_NNE, INI_File_Drive
 			if !Instr(d:=FileExist(INI_File_Dir),"D:")
 				FileCreateDir, % INI_File_Dir
-			if !FileExist(INI_File_File ".ini") ; check for ini-file file ending
+			if !FileExist(INI_File_File ".ini") ;; check for ini-file file ending
 				FileAppend,, % INI_File ".ini"
-		}
-		SetWorkingDir, INI-Files
-		IniRead, SectionNames, % INI_File ".ini"
-		for each, Section in StrSplit(SectionNames, "`n") {
-			IniRead, OutputVar_Section, % INI_File ".ini", %Section%
-			for each, Haystack in StrSplit(OutputVar_Section, "`n")
-			{
-				If (Instr(Haystack,"="))
+			SetWorkingDir, INI-Files
+			IniRead, SectionNames, % INI_File ".ini"
+			for each, Section in StrSplit(SectionNames, "`n") {
+				IniRead, OutputVar_Section, % INI_File ".ini", %Section%
+				for each, Haystack in StrSplit(OutputVar_Section, "`n")
 				{
-					RegExMatch(Haystack, "(.*?)=(.*)", $)
-				, Result[Section, $1] := $2
+					If (Instr(Haystack,"="))
+					{
+						RegExMatch(Haystack, "(.*?)=(.*)", $)
+					, Result[Section, $1] := $2
+					}
+					else
+						Result[Section, Result[Section].MaxIndex()+1]:=Haystack
 				}
-				else
-					Result[Section, Result[Section].MaxIndex()+1]:=Haystack
 			}
+			if A_WorkingDir!=OrigWorkDir
+				SetWorkingDir, %OrigWorkDir%
+			this.config:=Result
 		}
-		if A_WorkingDir!=OrigWorkDir
-			SetWorkingDir, %OrigWorkDir%
-		this.config:=Result
+			
 	}
 	Save(INI_File:="")
 	{
 		if (INI_File="")
 			INI_File:=this.configfile
 		SplitPath, INI_File, INI_File_File, INI_File_Dir, INI_File_Ext, INI_File_NNE, INI_File_Drive
-
 		if (d_fWriteINI_st_count(INI_File,".ini")>0)
 		{
 			INI_File:=d_fWriteINI_st_removeDuplicates(INI_File,".ini") ;. ".ini" ; reduce number of ".ini"-patterns to 1
 			if (d_fWriteINI_st_count(INI_File,".ini")>0)
 				INI_File:=SubStr(INI_File,1,StrLen(INI_File)-4) ; and remove the last instance
 		}
+		if (this.config.MaxIndex()>0)
+			("Saving")
 		if !Instr(d:=FileExist(INI_File_Dir),"D:")
 			FileCreateDir, % INI_File_Dir
 		if !FileExist(INI_File_File ".ini") ; check for ini-file file ending
@@ -1019,7 +1038,6 @@ licenseButtonSave(this, CtrlHwnd, GuiEvent, EventInfo, ErrLevel:="")
 		ExitApp, 1
 	}
 }
-
 licenseButtonCancel(CtrlHwnd, GuiEvent, EventInfo, ErrLevel:="")
 {
 	MsgBox, % 0x30
@@ -1046,4 +1064,169 @@ CopyFilesAndFolders(SourcePattern, DestinationFolder, DoOverwrite = false)
             MsgBox,% "Could not copy " A_LoopFileFullPath " into " DestinationFolder "."
     }
     return ErrorCount
+}
+
+ttip_ScriptObj(text:="TTIP: Test",mode:=1,to:=4000,xp:="NaN",yp:="NaN",CoordMode:=-1,to2:=1750,Times:=20,currTip:=20)
+{
+	/*
+		v.0.2.1
+		Date: 24 Juli 2021 19:40:56: 
+		
+		Modes:  
+		1: remove tt after "to" milliseconds 
+		2: remove tt after "to" milliseconds, but show again after "to2" milliseconds. Then repeat 
+		3: not sure anymore what the plan was lol - remove 
+		4: shows tooltip slightly offset from current mouse, does not repeat
+		5: keep that tt until the function is called again  
+
+		CoordMode:
+		-1: Default: currently set behaviour
+		1: Screen
+		2: Window
+
+		to: 
+		Timeout in milliseconds
+		
+		xp/yp: 
+		xPosition and yPosition of tooltip. 
+		"NaN": offset by +50/+50 relative to mouse
+		IF mode=4, 
+		----  Function uses tooltip 20 by default, use parameter
+		"currTip" to select a tooltip between 1 and 20. Tooltips are removed and handled
+		separately from each other, hence a removal of ttip20 will not remove tt14 
+
+		---
+		v.0.2.1
+		- added Obj2Str-Conversion via "ttip_Obj2Str()"
+		v.0.1.1 
+		- Initial build, 	no changelog yet
+	
+	*/
+	
+	;if (text="TTIP: Test")
+		;m(to)
+		cCoordModeTT:=A_CoordModeToolTip
+	if (text="") || (text=-1)
+		gosub, lRemovettip
+	if IsObject(text)
+		text:=ttip_Obj2Str(text)
+	static ttip_text
+	static lastcall_tip
+	static currTip2
+	global ttOnOff
+	currTip2:=currTip
+	cMode:=(CoordMode=1?"Screen":(CoordMode=2?"Window":cCoordModeTT))
+	CoordMode, % cMode
+	tooltip,
+
+	
+	ttip_text:=text
+	lUnevenTimers:=false 
+	MouseGetPos,xp1,yp1
+	if (mode=4) ; set text offset from cursor
+	{
+		yp:=yp1+15
+		xp:=xp1
+	}	
+	else
+	{
+		if (xp="NaN")
+			xp:=xp1 + 50
+		if (yp="NaN")
+			yp:=yp1 + 50
+	}
+	tooltip, % ttip_text,xp,yp,% currTip
+	if (mode=1) ; remove after given time
+	{
+		SetTimer, lRemovettip, % "-" to
+	}
+	else if (mode=2) ; remove, but repeatedly show every "to"
+	{
+		; gosub,  A
+		global to_1:=to
+		global to2_1:=to2
+		global tTimes:=Times
+		Settimer,lSwitchOnOff,-100
+	}
+	else if (mode=3)
+	{
+		lUnevenTimers:=true
+		SetTimer, lRepeatedshow, %  to
+	}
+	else if (mode=5) ; keep until function called again
+	{
+		
+	}
+	CoordMode, % cCoordModeTT
+	return text
+	lSwitchOnOff:
+	ttOnOff++
+	if mod(ttOnOff,2)	
+	{
+		gosub, lRemovettip
+		sleep, % to_1
+	}
+	else
+	{
+		tooltip, % ttip_text,xp,yp,% currTip
+		sleep, % to2_1
+	}
+	if (ttOnOff>=ttimes)
+	{
+		Settimer, lSwitchOnOff, off
+		gosub, lRemovettip
+		return
+	}
+	Settimer, lSwitchOnOff, -100
+	return
+
+	lRepeatedshow:
+	ToolTip, % ttip_text,,, % currTip2
+	if lUnevenTimers
+		sleep, % to2
+	Else
+		sleep, % to
+	return
+	lRemovettip:
+	ToolTip,,,,currTip2
+	return
+}
+ttip_Obj2Str(Obj,FullPath:=1,BottomBlank:=0){
+	static String,Blank
+	if(FullPath=1)
+		String:=FullPath:=Blank:=""
+	if(IsObject(Obj)){
+		for a,b in Obj{
+			if(IsObject(b))
+				ttip_Obj2Str(b,FullPath "." a,BottomBlank)
+			else{
+				if(BottomBlank=0)
+					String.=FullPath "." a " = " b "`n"
+				else if(b!="")
+					String.=FullPath "." a " = " b "`n"
+				else
+					Blank.=FullPath "." a " =`n"
+			}
+	}}
+	return String Blank
+}
+
+ScriptObj_Obj2Str(Obj,FullPath:=1,BottomBlank:=0){
+	static String,Blank
+	if(FullPath=1)
+		String:=FullPath:=Blank:=""
+	if(IsObject(Obj)){
+		for a,b in Obj{
+			if(IsObject(b))
+				ScriptObj_Obj2Str(b,FullPath "." a,BottomBlank)
+			else{
+				if(BottomBlank=0)
+					String.=FullPath "." a " = " b "`n"
+				else if(b!="")
+					String.=FullPath "." a " = " b "`n"
+				else
+					Blank.=FullPath "." a " =`n"
+			}
+	}}
+	return String Blank
 }
