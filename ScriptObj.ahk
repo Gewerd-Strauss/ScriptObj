@@ -621,7 +621,7 @@ class script
 			)
 			html.=sTmp
 		}
-		Clipboard:=html
+		; Clipboard:=html
 		if (creditslink and credits) || IsObject(credits) || RegexMatch(credits,"(?<Author>(\w|)*)(\s*\-\s*)(?<Snippet>(\w|\|)*)\s*\-\s*(?<URL>.*)")
 		{
 			if RegexMatch(credits,"(?<Author>(\w|)*)(\s*\-\s*)(?<Snippet>(\w|\|)*)\s*\-\s*(?<URL>.*)")
@@ -636,7 +636,7 @@ class script
 					Credits[Trim(val.2)]:=Trim(val.1) "|" Trim((strlen(val.3)>5?val.3:""))
 				}
 			}
-			Clipboard:=html
+			; Clipboard:=html
 			if IsObject(credits)
 			{
 				CreditsAssembly:="credits for used code:`n"
@@ -651,7 +651,7 @@ class script
 						CreditsAssembly.="<p><a href=" """" strsplit(v,"|").2 """" ">" k " - " strsplit(v,"|").1 "</a></p>`n"
 				}
 				html.=CreditsAssembly
-				Clipboard:=html
+				; Clipboard:=html
 			}
 			else
 			{
@@ -662,7 +662,7 @@ class script
 				)
 				html.=sTmp
 			}
-			Clipboard:=html
+			; Clipboard:=html
 		}
 		if forumlink and forumtext
 		{
@@ -672,7 +672,7 @@ class script
 						<p><a href="https://%forumlink%" target="_blank">%forumtext%</a></p>
 			)
 			html.=sTmp
-			Clipboard:=html
+			; Clipboard:=html
 		}
 		if homepagelink and homepagetext
 		{
@@ -683,7 +683,7 @@ class script
 
 			)
 			html.=sTmp
-			Clipboard:=html
+			; Clipboard:=html
 		}
 		sTmp=
 		(
