@@ -3,7 +3,7 @@
  * ============================================================================ *
  * @Author           : RaptorX <graptorx@gmail.com>
  * @Script Name      : Script Object
- * @Script Version   : 0.23.3
+ * @Script Version   : 0.24.3
  * @Homepage         :
  *
  * @Creation Date    : November 09, 2020
@@ -1097,7 +1097,7 @@ ttip_ScriptObj(text:="TTIP: Test",mode:=1,to:=4000,xp:="NaN",yp:="NaN",CoordMode
 
 		---
 		v.0.2.1
-		- added Obj2Str-Conversion via "ttip_Obj2Str()"
+		- added Obj2Str-Conversion via "ScriptObj_Obj2Str()"
 		v.0.1.1 
 		- Initial build, 	no changelog yet
 	
@@ -1107,9 +1107,9 @@ ttip_ScriptObj(text:="TTIP: Test",mode:=1,to:=4000,xp:="NaN",yp:="NaN",CoordMode
 		;m(to)
 		cCoordModeTT:=A_CoordModeToolTip
 	if (text="") || (text=-1)
-		gosub, lRemovettip
+		gosub, lScriptObj_TTIP_Removettip
 	if IsObject(text)
-		text:=ttip_Obj2Str(text)
+		text:=ScriptObj_Obj2Str(text)
 	static ttip_text
 	static lastcall_tip
 	static currTip2
@@ -1138,7 +1138,7 @@ ttip_ScriptObj(text:="TTIP: Test",mode:=1,to:=4000,xp:="NaN",yp:="NaN",CoordMode
 	tooltip, % ttip_text,xp,yp,% currTip
 	if (mode=1) ; remove after given time
 	{
-		SetTimer, lRemovettip, % "-" to
+		SetTimer, lScriptObj_TTIP_Removettip, % "-" to
 	}
 	else if (mode=2) ; remove, but repeatedly show every "to"
 	{
@@ -1146,12 +1146,12 @@ ttip_ScriptObj(text:="TTIP: Test",mode:=1,to:=4000,xp:="NaN",yp:="NaN",CoordMode
 		global to_1:=to
 		global to2_1:=to2
 		global tTimes:=Times
-		Settimer,lSwitchOnOff,-100
+		Settimer,lScriptObj_TTIP_SwitchOnOff,-100
 	}
 	else if (mode=3)
 	{
 		lUnevenTimers:=true
-		SetTimer, lRepeatedshow, %  to
+		SetTimer, lScriptObj_RpeatedShow, %  to
 	}
 	else if (mode=5) ; keep until function called again
 	{
@@ -1159,11 +1159,11 @@ ttip_ScriptObj(text:="TTIP: Test",mode:=1,to:=4000,xp:="NaN",yp:="NaN",CoordMode
 	}
 	CoordMode, % cCoordModeTT
 	return text
-	lSwitchOnOff:
+	lScriptObj_TTIP_SwitchOnOff:
 	ttOnOff++
 	if mod(ttOnOff,2)	
 	{
-		gosub, lRemovettip
+		gosub, lScriptObj_TTIP_Removettip
 		sleep, % to_1
 	}
 	else
@@ -1173,44 +1173,24 @@ ttip_ScriptObj(text:="TTIP: Test",mode:=1,to:=4000,xp:="NaN",yp:="NaN",CoordMode
 	}
 	if (ttOnOff>=ttimes)
 	{
-		Settimer, lSwitchOnOff, off
-		gosub, lRemovettip
+		Settimer, lScriptObj_TTIP_SwitchOnOff, off
+		gosub, lScriptObj_TTIP_Removettip
 		return
 	}
-	Settimer, lSwitchOnOff, -100
+	Settimer, lScriptObj_TTIP_SwitchOnOff, -100
 	return
 
-	lRepeatedshow:
+	lScriptObj_RpeatedShow:
 	ToolTip, % ttip_text,,, % currTip2
 	if lUnevenTimers
 		sleep, % to2
 	Else
 		sleep, % to
 	return
-	lRemovettip:
+	lScriptObj_TTIP_Removettip:
 	ToolTip,,,,currTip2
 	return
 }
-ttip_Obj2Str(Obj,FullPath:=1,BottomBlank:=0){
-	static String,Blank
-	if(FullPath=1)
-		String:=FullPath:=Blank:=""
-	if(IsObject(Obj)){
-		for a,b in Obj{
-			if(IsObject(b))
-				ttip_Obj2Str(b,FullPath "." a,BottomBlank)
-			else{
-				if(BottomBlank=0)
-					String.=FullPath "." a " = " b "`n"
-				else if(b!="")
-					String.=FullPath "." a " = " b "`n"
-				else
-					Blank.=FullPath "." a " =`n"
-			}
-	}}
-	return String Blank
-}
-
 ScriptObj_Obj2Str(Obj,FullPath:=1,BottomBlank:=0){
 	static String,Blank
 	if(FullPath=1)
