@@ -3,7 +3,7 @@
  * ============================================================================ *
  * @Author           : RaptorX <graptorx@gmail.com>
  * @Script Name      : Script Object
- * @Script Version   : 0.24.3
+ * @Script Version   : 0.25.3
  * @Homepage         :
  *
  * @Creation Date    : November 09, 2020
@@ -637,21 +637,24 @@ class script
 				}
 			}
 			; Clipboard:=html
-			if IsObject(credits)
+			if IsObject(credits)  
 			{
-				CreditsAssembly:="credits for used code:`n"
-				for k,v in credits
+				if (credits.Count()>0)
 				{
-					; if Instr()
-					if (k="")
-						continue
-					if (strsplit(v,"|").2="")
-						CreditsAssembly.="<p>" k " - " strsplit(v,"|").1 "`n"
-					else
-						CreditsAssembly.="<p><a href=" """" strsplit(v,"|").2 """" ">" k " - " strsplit(v,"|").1 "</a></p>`n"
+					CreditsAssembly:="credits for used code:`n"
+					for k,v in credits
+					{
+						; if Instr()
+						if (k="")
+							continue
+						if (strsplit(v,"|").2="")
+							CreditsAssembly.="<p>" k " - " strsplit(v,"|").1 "`n"
+						else
+							CreditsAssembly.="<p><a href=" """" strsplit(v,"|").2 """" ">" k " - " strsplit(v,"|").1 "</a></p>`n"
+					}
+					html.=CreditsAssembly
+					; Clipboard:=html
 				}
-				html.=CreditsAssembly
-				; Clipboard:=html
 			}
 			else
 			{
@@ -700,7 +703,7 @@ class script
 		, forumHeight := forumlink ? 1 : 0
 		, ghHeight := ghlink ? 1 : 0
 		, creditsHeight := creditslink ? 1 : 0
-		, creditsHeight+=credits.Count()*1.5 ; + d:=(credits.Count()>0?2.5:0)
+		, creditsHeight+= (credits.Count()>0)?credits.Count()*1.5:0 ; + d:=(credits.Count()>0?2.5:0)
 		, homepageHeight := homepagelink ? 1 : 0
 		, docHeight := doclink ? 1 : 0
 		, axHight+=donateHeight
@@ -721,7 +724,7 @@ class script
 		return
 
 		aboutClose:
-			gui aboutScript:destroy
+		gui aboutScript:destroy
 		return
 	}
 
@@ -732,8 +735,7 @@ class script
 		Function: GetLicense
 		Parameters:
 		Notes:
-		*CreditsRaw		global
-
+		*/
 		this.systemID := this.GetSystemID()
 		cleanName := RegexReplace(A_ScriptName, "\..*$")
 		for i,value in ["Type", "License"]
@@ -854,42 +856,43 @@ class script
 
 /*
 
+	Activate()
+	{
+		strQuery := this.strEddRootUrl . "?edd_action=activate_license&item_id=" . this.strRequestedProductId . "&license=" . this.strEddLicense . "&url=" . this.strUniqueSystemId
+		strJSON := Url2Var(strQuery)
+		Diag(A_ThisFunc . " strQuery", strQuery, "")
+		Diag(A_ThisFunc . " strJSON", strJSON, "")
+		return JSON.parse(strJSON)
+	}
+	Deactivate()
+	{
+		Loop, Parse, % "/|", |
+		{
+			strQuery := this.strEddRootUrl . "?edd_action=deactivate_license&item_id=" . this.strRequestedProductId . "&license=" . this.strEddLicense . "&url=" . this.strUniqueSystemId . A_LoopField
+			strJSON := Url2Var(strQuery)
+			Diag(A_ThisFunc . " strQuery", strQuery, "")
+			Diag(A_ThisFunc . " strJSON", strJSON, "")
+			this.oLicense := JSON.parse(strJSON)
+			if (this.oLicense.success)
+			break	
+		}
+	}
 
-	; Activate()
-	; 	{
-	; 	strQuery := this.strEddRootUrl . "?edd_action=activate_license&item_id=" . this.strRequestedProductId . "&license=" . this.strEddLicense . "&url=" . this.strUniqueSystemId
-	; 	strJSON := Url2Var(strQuery)
-	; 	Diag(A_ThisFunc . " strQuery", strQuery, "")
-	; 	Diag(A_ThisFunc . " strJSON", strJSON, "")
-	; 	return JSON.parse(strJSON)
-	; 	}
-	; Deactivate()
-	; 	{
-	; 	Loop, Parse, % "/|", |
-	; 	{
-	; 	strQuery := this.strEddRootUrl . "?edd_action=deactivate_license&item_id=" . this.strRequestedProductId . "&license=" . this.strEddLicense . "&url=" . this.strUniqueSystemId . A_LoopField
-	; 	strJSON := Url2Var(strQuery)
-	; 	Diag(A_ThisFunc . " strQuery", strQuery, "")
-	; 	Diag(A_ThisFunc . " strJSON", strJSON, "")
-	; 	this.oLicense := JSON.parse(strJSON)
-	; 	if (this.oLicense.success)
-	; 	break
-	; 	}
-	; 	}
-	; GetVersion()
-	; 	{
-	; 	strQuery := this.strEddRootUrl . "?edd_action=get_version&item_id=" . this.oLicense.item_id . "&license=" . this.strEddLicense . "&url=" . this.strUniqueSystemId
-	; 	strJSON := Url2Var(strQuery)
-	; 	Diag(A_ThisFunc . " strQuery", strQuery, "")
-	; 	Diag(A_ThisFunc . " strJSON", strJSON, "")
-	; 	return JSON.parse(strJSON)
-	; 	}
-	; RenewLink()
-	; 	{
-	; 	strUrl := this.strEddRootUrl . "checkout/?edd_license_key=" . this.strEddLicense . "&download_id=" . this.oLicense.item_id
-	; 	Diag(A_ThisFunc . " strUrl", strUrl, "")
-	; 	return strUrl
-	; 	}
+	GetVersion()
+	{
+		strQuery := this.strEddRootUrl . "?edd_action=get_version&item_id=" . this.oLicense.item_id . "&license=" . this.strEddLicense . "&url=" . this.strUniqueSystemId
+		strJSON := Url2Var(strQuery)
+		Diag(A_ThisFunc . " strQuery", strQuery, "")
+		Diag(A_ThisFunc . " strJSON", strJSON, "")
+		return JSON.parse(strJSON)
+	}
+
+	RenewLink()
+	{
+		strUrl := this.strEddRootUrl . "checkout/?edd_license_key=" . this.strEddLicense . "&download_id=" . this.oLicense.item_id
+		Diag(A_ThisFunc . " strUrl", strUrl, "")
+		return strUrl
+	}
 
 */
 
@@ -905,9 +908,8 @@ class script
 			if (d_fWriteINI_st_count(INI_File,".ini")>0)
 				INI_File:=SubStr(INI_File,1,StrLen(INI_File)-4) ;		 and remove the last instance
 		}
-		if (this.config.MaxIndex()>0 && this.config.MaxIndex()!="")	;; only run this routine when the config actually contains values and is not simply an empty file.
-		{
-			if !FileExist(INI_File) ;; create new INI_File if not existing
+		; if (this.config.MaxIndex()>0 && this.config.MaxIndex()!="")	;; only run this routine when the config actually contains values and is not simply an empty file.
+			if !FileExist(INI_File ".ini") ;; create new INI_File if not existing
 			{
 				msgbox, 8240,% this.Name " -  No Save File found", % e.Message "`n`nNo save file was found.`nPlease reinitialise settings if possible."
 				return
@@ -935,7 +937,6 @@ class script
 			if A_WorkingDir!=OrigWorkDir
 				SetWorkingDir, %OrigWorkDir%
 			this.config:=Result
-		}
 			
 	}
 	Save(INI_File:="")
