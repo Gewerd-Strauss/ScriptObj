@@ -3,13 +3,20 @@
  * ============================================================================ *
  * @Author           : RaptorX <graptorx@gmail.com>
  * @Script Name      : Script Object
- * @Script Version   : 0.25.3
+ * @Script Version   : 0.26.3
  * @Homepage         :
  *
  * @Creation Date    : November 09, 2020
- * @Modification Date: September 02, 2021
+ * @Modification Date: October 04, 2022
  * @Modification G.S.: 08.2022
  ; @Description Modification G.S.:
+    - Load()-method always returns false if File
+	  passed to parameter "INI_File" does not exist
+    - Load()-method always returns -1 if File
+	  passed to parameter "INI_File" does not contain
+	  any values
+	- Load()-method can be set up to not warn in
+	  case of a missing ini-file.
 	- added field for GitHub-link, a Forum-link 
 	  and a credits-field, as well as a template 
 	  to quickly copy out into new scripts
@@ -896,7 +903,7 @@ class script
 
 */
 
-	Load(INI_File:="")
+	Load(INI_File:="", bSilentReturn:=0)
 	{
 		if (INI_File="")
 			INI_File:=this.configfile
@@ -908,11 +915,11 @@ class script
 			if (d_fWriteINI_st_count(INI_File,".ini")>0)
 				INI_File:=SubStr(INI_File,1,StrLen(INI_File)-4) ;		 and remove the last instance
 		}
-		; if (this.config.MaxIndex()>0 && this.config.MaxIndex()!="")	;; only run this routine when the config actually contains values and is not simply an empty file.
 			if !FileExist(INI_File ".ini") ;; create new INI_File if not existing
 			{
-				msgbox, 8240,% this.Name " -  No Save File found", % e.Message "`n`nNo save file was found.`nPlease reinitialise settings if possible."
-				return
+				if !bSilentReturn
+					msgbox, 8240,% this.Name " -  No Save File found", % "No save file was found.`nPlease reinitialise settings if possible."
+				return false
 			}
 			SplitPath, INI_File, INI_File_File, INI_File_Dir, INI_File_Ext, INI_File_NNE, INI_File_Drive
 			if !Instr(d:=FileExist(INI_File_Dir),"D:")
@@ -928,7 +935,7 @@ class script
 					If (Instr(Haystack,"="))
 					{
 						RegExMatch(Haystack, "(.*?)=(.*)", $)
-					, Result[Section, $1] := $2
+						, Result[Section, $1] := $2
 					}
 					else
 						Result[Section, Result[Section].MaxIndex()+1]:=Haystack
@@ -937,7 +944,8 @@ class script
 			if A_WorkingDir!=OrigWorkDir
 				SetWorkingDir, %OrigWorkDir%
 			this.config:=Result
-			
+			t:=this.config.Count()
+		return (this.config.Count()?true:-1) ; returns true if this.config contains values. returns -1 otherwhise to distinguish between a missing config file and an empty config file
 	}
 	Save(INI_File:="")
 	{
@@ -950,8 +958,6 @@ class script
 			if (d_fWriteINI_st_count(INI_File,".ini")>0)
 				INI_File:=SubStr(INI_File,1,StrLen(INI_File)-4) ; and remove the last instance
 		}
-		if (this.config.MaxIndex()>0)
-			("Saving")
 		if !Instr(d:=FileExist(INI_File_Dir),"D:")
 			FileCreateDir, % INI_File_Dir
 		if !FileExist(INI_File_File ".ini") ; check for ini-file file ending
@@ -968,10 +974,6 @@ class script
 			IniWrite, %Pairs%, % INI_File ".ini", %SectionName%
 		}
  	}
-
-
-
-
 }
 
 d_fWriteINI_st_removeDuplicates(string, delim="`n")
