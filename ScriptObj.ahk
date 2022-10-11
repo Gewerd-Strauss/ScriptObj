@@ -104,6 +104,7 @@ finally, make sure toingest 'CreditsRaw' into the 'credits'-field of the templat
 ;                     ,donateLink	  : ""
 ;                     ,resfolder    : A_ScriptDir "\res"
 ;                     ,iconfile	  : ""
+;					  ,reqInternet: false
 ; 					,rfile  	  : "https://github.com/Gewerd-Strauss/REPOSITORY_NAME/archive/refs/heads/BRANCH_NAME.zip"
 ; 					,vfile_raw	  : "https://raw.githubusercontent.com/Gewerd-Strauss/REPOSITORY_NAME/BRANCH_NAME/version.ini" 
 ; 					,vfile 		  : "https://raw.githubusercontent.com/Gewerd-Strauss/REPOSITORY_NAME/BRANCH_NAME/version.ini" 
@@ -189,7 +190,7 @@ class script
 
 		For more information about SemVer and its specs click here: <https://semver.org/>
 	*/
-	Update(vfile:="", rfile:="",bSilentCheck:=false,Backup:=true)
+	Update(vfile:="", rfile:="",bSilentCheck:=false,Backup:=true,DataOnly:=false)
 	{
 		; Error Codes
 		static ERR_INVALIDVFILE := 1
@@ -224,7 +225,31 @@ class script
 			try
 				http.WaitForResponse(1)
 			catch e
-				throw {code: ERR_NOCONNECT, msg: e.message}
+			{
+				bScriptObj_IsConnected:=ScriptObj_IsConnected()
+				if !bScriptObj_IsConnected && !this.reqInternet && (this.reqInternet!="") ;; if internet not required - just abort update checl
+				{ ;; TODO: replace with msgbox-query asking to start script or not - 
+					ttip_ScriptObj(script.name ": No internet connection established - aborting update check. Continuing Script Execution",,,,,,,,18)
+					return
+				}
+				if !bScriptObj_IsConnected && this.reqInternet ;; if internet is required - abort script
+				{
+						gui, +OwnDialogs
+						OnMessage(0x44, "OnMsgBoxScriptObj")
+						MsgBox 0x11,% this.name " - No internet connection",% "No internet connection could be established. `n`nAs " this.name " requires an active internet connection`, the program will shut down now.`n`n`n`nExiting."
+						OnMessage(0x44, "")
+
+						IfMsgBox OK, {
+							ExitApp
+						} Else IfMsgBox Cancel, {
+							reload
+						}
+						
+				}
+
+					
+			}
+				; throw {code: ERR_NOCONNECT, msg: e.message} ;; TODO: detect if offline
 			if (!bSilentCheck)
 					Progress, 50, 50/100, % "Checking for updates", % "Updating"
 
@@ -250,7 +275,7 @@ class script
 				Progress, 100, 100/100, % "Checking for updates", % "Updating"
 				sleep 500 	; allow progress to update
 			}
-			Progress, OFF
+ 			Progress, OFF
 
 			; Make sure SemVer is used
  			if (!loVersion || !remVersion)
@@ -944,7 +969,6 @@ class script
 			if A_WorkingDir!=OrigWorkDir
 				SetWorkingDir, %OrigWorkDir%
 			this.config:=Result
-			t:=this.config.Count()
 		return (this.config.Count()?true:-1) ; returns true if this.config contains values. returns -1 otherwhise to distinguish between a missing config file and an empty config file
 	}
 	Save(INI_File:="")
@@ -1213,3 +1237,13 @@ ScriptObj_Obj2Str(Obj,FullPath:=1,BottomBlank:=0){
 	}}
 	return String Blank
 }
+ScriptObj_IsConnected(URL="https://autohotkey.com/boards/") {                            	;-- Returns true if there is an available internet connection
+	return DllCall("Wininet.dll\InternetCheckConnection", "Str", URL,"UInt", 1, "UInt",0, "UInt")
+}
+OnMsgBoxScriptObj() {
+						DetectHiddenWindows, On
+						Process, Exist
+						If (WinExist("ahk_class #32770 ahk_pid " . ErrorLevel)) {
+							ControlSetText Button2, Retry
+						}
+					}
