@@ -160,14 +160,13 @@ class script
         ,config       := ""
         ,configfile   := ""
         ,configfolder := ""
-		,datafolder   := ""
 		,icon         := ""
 		,systemID     := ""
 		,dbgFile      := ""
 		,rfile		  := ""
 		,vfile		  := ""
 		,dbgLevel     := this.DBG_NONE
-		,versionScObj := "0.22.3"
+		,versionScObj := "0.21.3"
 
 
 	/**
