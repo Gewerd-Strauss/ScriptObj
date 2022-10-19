@@ -191,7 +191,7 @@ class script
 
 		For more information about SemVer and its specs click here: <https://semver.org/>
 	*/
-	Update(vfile:="", rfile:="",bSilentCheck:=false,Backup:=true,DataOnly:=false)
+	Update(vfile:="", rfile:="",bSilentCheck:=false,Backup:=true)
 	{
 		; Error Codes
 		static ERR_INVALIDVFILE := 1
@@ -382,7 +382,7 @@ class script
 				for item_ in items1 
 				{
 
-					;; if DataOnly ;; figure out how to detect and skip files based on directory, so that one can skip updating script and settings and so on, and only query the scripts' data-files 
+					
 					root := item_.Path
 					, items:=shell.Namespace(root).Items
 					for item in items
