@@ -109,6 +109,7 @@ finally, make sure toingest 'CreditsRaw' into the 'credits'-field of the templat
 ; 					,vfile_raw	  : "https://raw.githubusercontent.com/Gewerd-Strauss/REPOSITORY_NAME/BRANCH_NAME/version.ini" 
 ; 					,vfile 		  : "https://raw.githubusercontent.com/Gewerd-Strauss/REPOSITORY_NAME/BRANCH_NAME/version.ini" 
 ; 					,vfile_local  : A_ScriptDir "\version.ini" 
+;					,DataFolder:	A_ScriptDir ""
 ;                     ,config:		[]
 ; 					,configfile   : A_ScriptDir "\INI-Files\" regexreplace(A_ScriptName, "\.\w+") ".ini"
 ;                     ,configfolder : A_ScriptDir "\INI-Files"}
@@ -124,7 +125,7 @@ finally, make sure toingest 'CreditsRaw' into the 'credits'-field of the templat
 		script.Debug(script.error.Level,script.error.Label,script.error.Message,script.error.AddInfo,script.error.Vars)
 */
 ; script.Load()
-; , script.Update(,,) ;; DO NOT ACTIVATE THISLINE UNTIL YOU DUMBO HAS FIXED THE DAMN METHOD. God damn it.
+; , script.Update(,,,,,)  ;; DO NOT ACTIVATE THISLINE UNTIL YOU DUMBO HAS FIXED THE DAMN METHOD. God damn it.
 ; /Template_End
 class script
 {
@@ -203,203 +204,208 @@ class script
 			,ERR_USRCANCEL          := 8
 		vfile:=(vfile=="")?this.vfile:vfile
 		,rfile:=(rfile=="")?this.rfile:rfile
+		if RegexMatch(vfile,"\d+") || RegexMatch(rfile,"\d+")	 ;; allow skipping of the routine by simply returning here
+			return
+		; Error Codes
+		if (vfile="") 											;; disregard empty vfiles
+			return
+		if (!regexmatch(vfile, "^((?:http(?:s)?|ftp):\/\/)?((?:[a-z0-9_\-]+\.)+.*$)"))
+			exception({code: ERR_INVALIDVFILE, msg: "Invalid URL`n`nThe version file parameter must point to a 	valid URL."})
+		if  (regexmatch(vfile, "(REPOSITORY_NAME|BRANCH_NAME)"))
+			Return												;; let's not throw an error when this happens because fixing it is irrelevant to development in 95% of all cases
+
+		; This function expects a ZIP file
+		if (!regexmatch(rfile, "\.zip"))
+			exception({code: ERR_INVALIDRFILE, msg: "Invalid Zip`n`nThe remote file parameter must point to a zip file."})
+
+		; Check if we are connected to the internet
+		http := comobjcreate("WinHttp.WinHttpRequest.5.1")
+		, http.Open("GET", "https://www.google.com", true)
+		, http.Send()
+		try
+			http.WaitForResponse(1)
+		catch e
 		{
-			if RegexMatch(vfile,"\d+") || RegexMatch(rfile,"\d+")	 ;; allow skipping of the routine by simply returning here
+			bScriptObj_IsConnected:=ScriptObj_IsConnected()
+			if !bScriptObj_IsConnected && !this.reqInternet && (this.reqInternet!="") ;; if internet not required - just abort update checl
+			{ ;; TODO: replace with msgbox-query asking to start script or not - 
+				ttip_ScriptObj(script.name ": No internet connection established - aborting update check. Continuing Script Execution",,,,,,,,18)
 				return
-			; Error Codes
-			if (vfile="") 											;; disregard empty vfiles
-				return
-			if (!regexmatch(vfile, "^((?:http(?:s)?|ftp):\/\/)?((?:[a-z0-9_\-]+\.)+.*$)"))
-				exception({code: ERR_INVALIDVFILE, msg: "Invalid URL`n`nThe version file parameter must point to a 	valid URL."})
-			if  (regexmatch(vfile, "(REPOSITORY_NAME|BRANCH_NAME)"))
-				Return												;; let's not throw an error when this happens because fixing it is irrelevant to development in 95% of all cases
-
-			; This function expects a ZIP file
-			if (!regexmatch(rfile, "\.zip"))
-				exception({code: ERR_INVALIDRFILE, msg: "Invalid Zip`n`nThe remote file parameter must point to a zip file."})
-
-			; Check if we are connected to the internet
-			http := comobjcreate("WinHttp.WinHttpRequest.5.1")
-			, http.Open("GET", "https://www.google.com", true)
-			, http.Send()
-			try
-				http.WaitForResponse(1)
-			catch e
+			}
+			if !bScriptObj_IsConnected && this.reqInternet ;; if internet is required - abort script
 			{
-				bScriptObj_IsConnected:=ScriptObj_IsConnected()
-				if !bScriptObj_IsConnected && !this.reqInternet && (this.reqInternet!="") ;; if internet not required - just abort update checl
-				{ ;; TODO: replace with msgbox-query asking to start script or not - 
-					ttip_ScriptObj(script.name ": No internet connection established - aborting update check. Continuing Script Execution",,,,,,,,18)
-					return
-				}
-				if !bScriptObj_IsConnected && this.reqInternet ;; if internet is required - abort script
-				{
-						gui, +OwnDialogs
-						OnMessage(0x44, "OnMsgBoxScriptObj")
-						MsgBox 0x11,% this.name " - No internet connection",% "No internet connection could be established. `n`nAs " this.name " requires an active internet connection`, the program will shut down now.`n`n`n`nExiting."
-						OnMessage(0x44, "")
+					gui, +OwnDialogs
+					OnMessage(0x44, "OnMsgBoxScriptObj")
+					MsgBox 0x11,% this.name " - No internet connection",% "No internet connection could be established. `n`nAs " this.name " requires an active internet connection`, the program will shut down now.`n`n`n`nExiting."
+					OnMessage(0x44, "")
 
-						IfMsgBox OK, {
-							ExitApp
-						} Else IfMsgBox Cancel, {
-							reload
-						}
-						
-				}
-
+					IfMsgBox OK, {
+						ExitApp
+					} Else IfMsgBox Cancel, {
+						reload
+					}
 					
 			}
-				; throw {code: ERR_NOCONNECT, msg: e.message} ;; TODO: detect if offline
-			if (!bSilentCheck)
-					Progress, 50, 50/100, % "Checking for updates", % "Updating"
 
-			; Download remote version file
-			http.Open("GET", vfile, true)
-			http.Send(), http.WaitForResponse()
+				
+		}
+			; throw {code: ERR_NOCONNECT, msg: e.message} ;; TODO: detect if offline
+		if (!bSilentCheck)
+				Progress, 50, 50/100, % "Checking for updates", % "Updating"
 
-			if !(http.responseText)
-			{
-				Progress, OFF
-				try
-					throw exception("There was an error trying to download the ZIP file for the update.`n","script.Update()","The server did not respond.")
-				Catch, e
-					msgbox, 8240,% this.Name " -  No response from server", % e.Message "`n`nCheck again later`, or contact the author/provider. Script will resume normal operation."
-			}
-			regexmatch(this.version, "\d+\.\d+\.\d+", loVersion)		;; as this.version is not updated automatically, instead read the local version file
-			
-			; FileRead, loVersion,% A_ScriptDir "\version.ini"
-			d:=http.responseText
-			regexmatch(http.responseText, "\d+\.\d+\.\d+", remVersion)
-			if (!bSilentCheck)
-			{
-				Progress, 100, 100/100, % "Checking for updates", % "Updating"
-				sleep 500 	; allow progress to update
-			}
- 			Progress, OFF
+		; Download remote version file
+		http.Open("GET", vfile, true)
+		http.Send(), http.WaitForResponse()
 
-			; Make sure SemVer is used
- 			if (!loVersion || !remVersion)
+		if !(http.responseText)
+		{
+			Progress, OFF
+			try
+				throw exception("There was an error trying to download the ZIP file for the update.`n","script.Update()","The server did not respond.")
+			Catch, e
+				msgbox, 8240,% this.Name " -  No response from server", % e.Message "`n`nCheck again later`, or contact the author/provider. Script will resume normal operation."
+		}
+		regexmatch(this.version, "\d+\.\d+\.\d+", loVersion)		;; as this.version is not updated automatically, instead read the local version file
+		
+		; FileRead, loVersion,% A_ScriptDir "\version.ini"
+		d:=http.responseText
+		regexmatch(http.responseText, "\d+\.\d+\.\d+", remVersion)
+		if (!bSilentCheck)
+		{
+			Progress, 100, 100/100, % "Checking for updates", % "Updating"
+			sleep 500 	; allow progress to update
+		}
+		Progress, OFF
+
+		; Make sure SemVer is used
+		if (!loVersion || !remVersion)
+		{
+			try
+				throw exception("Invalid version.`n The update-routine of this script works with SemVer.","script.Update()","For more information refer to the documentation in the file`n" )
+			catch, e
+				msgbox, 8240,% "Invalid Version", % e.What ":" e.Message "`n`n" e.Extra "'" e.File "'."
+		}
+		; Compare against current stated version
+		ver1 := strsplit(loVersion, ".")
+		, ver2 := strsplit(remVersion, ".")
+		, bRemoteIsGreater:=[0,0,0]
+		, newversion:=false
+		for i1,num1 in ver1
+		{
+			for i2,num2 in ver2
 			{
-				try
-					throw exception("Invalid version.`n The update-routine of this script works with SemVer.","script.Update()","For more information refer to the documentation in the file`n" )
-				catch, e
-					msgbox, 8240,% "Invalid Version", % e.What ":" e.Message "`n`n" e.Extra "'" e.File "'."
-			}
-			; Compare against current stated version
-			ver1 := strsplit(loVersion, ".")
-			, ver2 := strsplit(remVersion, ".")
-			, bRemoteIsGreater:=[0,0,0]
-			, newversion:=false
-			for i1,num1 in ver1
-			{
-				for i2,num2 in ver2
+				if (i1 == i2)
 				{
-					if (i1 == i2)
+					if (num2 > num1)
 					{
-						if (num2 > num1)
-						{
-							bRemoteIsGreater[i1]:=true
-							break
-						}
-						else if (num2 = num1)
-							bRemoteIsGreater[i1]:=false
-						else if (num2 < num1)
-							bRemoteIsGreater[i1]:=-1
+						bRemoteIsGreater[i1]:=true
+						break
 					}
-				}
-			}
-			if (!bRemoteIsGreater[1] && !bRemoteIsGreater[2]) ;; denotes in which position (remVersion>loVersion) → 1, (remVersion=loVersion) → 0, (remVersion<loVersion) → -1 
-				if (bRemoteIsGreater[3] && bRemoteIsGreater[3]!=-1)
-					newversion:=true
-			if (bRemoteIsGreater[1] || bRemoteIsGreater[2])
-				newversion:=true
-			if (bRemoteIsGreater[1]=-1)
-				newversion:=false
-			if (bRemoteIsGreater[2]=-1) && (bRemoteIsGreater[1]!=1)
-				newversion:=false
-			if (!newversion)
-			{
-				if (!bSilentCheck)
-					msgbox, 8256, No new version available, You are using the latest version.`n`nScript will continue running.
-				return
-			}
-			else
-			{
-				; If new version ask user what to do				"C:\Users\CLAUDI~1\AppData\Local\Temp\AHK_LibraryGUI
-				; Yes/No | Icon Question | System Modal
-				msgbox % 0x4 + 0x20 + 0x1000
-					, % "New Update Available"
-					, % "There is a new update available for this application.`n"
-					. "Do you wish to upgrade to v" remVersion "?"
-					, 10	; timeout
-
-				ifmsgbox timeout
-				{
-					try
-						throw exception("The message box timed out.","script.Update()","Script will not be updated.")
-					Catch, e
-						msgbox, 4144,% this.Name " - " "New Update Available" ,   % e.Message "`nNo user-input received.`n`n" e.Extra "`nResuming normal operation now.`n"
-					return
-				}
-				ifmsgbox no
-				{		;; decide if you want to have this or not. 
-					; try
-					; 	throw exception("The user pressed the cancel button.","script.Update()","Script will not be updated.") ;{code: ERR_USRCANCEL, msg: "The user pressed the cancel button."}
-					; catch, e
-					; 	msgbox, 4144,% this.Name " - " "New Update Available" ,   % e.Message "`n`n" e.Extra "`nResuming normal operation now.`n"
-					return
-				}
-
-				; Create temporal dirs
-				ghubname := (InStr(rfile, "github") ? regexreplace(a_scriptname, "\..*$") "-latest\" : "")
-				filecreatedir % Update_Temp := a_temp "\" regexreplace(a_scriptname, "\..*$")
-				filecreatedir % zipDir := Update_Temp "\uzip"
-
-				; ; Create lock file
-				; fileappend % a_now, % lockFile := Update_Temp "\lock"
-
-				; Download zip file
-				urldownloadtofile % rfile, % file:=Update_Temp "\temp.zip"
-
-				; Extract zip file to temporal folder
-				shell := ComObjCreate("Shell.Application")
-
-				; Make backup of current folder
-				if !Instr(FileExist(Backup_Temp:= A_Temp "\Backup " regexreplace(a_scriptname, "\..*$") " - " StrReplace(loVersion,".","_")),"D")
-					FileCreateDir, % Backup_Temp
-				else
-				{
-					FileDelete, % Backup_Temp
-					FileCreateDir, % Backup_Temp
-				}
-				; Gui +OwnDialogs
-				MsgBox 0x34, `% this.Name " - " "New Update Available", Last Chance to abort Update.`n`n(also remove this once you're done debugging the updater)`nDo you want to continue the Update?
-				IfMsgBox Yes 
-				{
-					Err:=CopyFilesAndFolders(A_ScriptDir, Backup_Temp,1)
-					, Err2:=CopyFilesAndFolders(Backup_Temp ,A_ScriptDir  ,0)
-					, items1 := shell.Namespace(file).Items
-					for item_ in items1
-					{
-						root := item_.Path
-						, items:=shell.Namespace(root).Items
-						for item in items
-							shell.NameSpace(A_ScriptDir).CopyHere(item, 0x14)
-					}
-					MsgBox, 0x40040,,Update Finished
-					FileRemoveDir, % Backup_Temp,1
-					FileRemoveDir, % Update_Temp,1
-					reload
-				}
-				Else IfMsgBox No
-				{	; no update, cleanup the previously downloaded files from the tmp
-					MsgBox, 0x40040,,Update Aborted
-					FileRemoveDir, % Backup_Temp,1
-					FileRemoveDir, % Update_Temp,1
-
+					else if (num2 = num1)
+						bRemoteIsGreater[i1]:=false
+					else if (num2 < num1)
+						bRemoteIsGreater[i1]:=-1
 				}
 			}
 		}
+		if (!bRemoteIsGreater[1] && !bRemoteIsGreater[2]) ;; denotes in which position (remVersion>loVersion) → 1, (remVersion=loVersion) → 0, (remVersion<loVersion) → -1 
+			if (bRemoteIsGreater[3] && bRemoteIsGreater[3]!=-1)
+				newversion:=true
+		if (bRemoteIsGreater[1] || bRemoteIsGreater[2])
+			newversion:=true
+		if (bRemoteIsGreater[1]=-1)
+			newversion:=false
+		if (bRemoteIsGreater[2]=-1) && (bRemoteIsGreater[1]!=1)
+			newversion:=false
+		if (!newversion)
+		{
+			if (!bSilentCheck)
+				msgbox, 8256, No new version available, You are using the latest version.`n`nScript will continue running.
+			return
+		}
+		else
+		{
+			; If new version ask user what to do				"C:\Users\CLAUDI~1\AppData\Local\Temp\AHK_LibraryGUI
+			; Yes/No | Icon Question | System Modal
+			msgbox % 0x4 + 0x20 + 0x1000
+				, % "New Update Available"
+				, % "There is a new update available for this application.`n"
+				. "Do you wish to upgrade to v" remVersion "?"
+				, 10	; timeout
+
+			ifmsgbox timeout
+			{
+				try
+					throw exception("The message box timed out.","script.Update()","Script will not be updated.")
+				Catch, e
+					msgbox, 4144,% this.Name " - " "New Update Available" ,   % e.Message "`nNo user-input received.`n`n" e.Extra "`nResuming normal operation now.`n"
+				return
+			}
+			ifmsgbox no
+			{		;; decide if you want to have this or not. 
+				; try
+				; 	throw exception("The user pressed the cancel button.","script.Update()","Script will not be updated.") ;{code: ERR_USRCANCEL, msg: "The user pressed the cancel button."}
+				; catch, e
+				; 	msgbox, 4144,% this.Name " - " "New Update Available" ,   % e.Message "`n`n" e.Extra "`nResuming normal operation now.`n"
+				return
+			}
+
+			; Create temporal dirs
+			ghubname := (InStr(rfile, "github") ? regexreplace(a_scriptname, "\..*$") "-latest\" : "")
+			filecreatedir % Update_Temp := a_temp "\" regexreplace(a_scriptname, "\..*$")
+			filecreatedir % zipDir := Update_Temp "\uzip"
+
+			; ; Create lock file
+			; fileappend % a_now, % lockFile := Update_Temp "\lock"
+
+			; Download zip file
+			urldownloadtofile % rfile, % file:=Update_Temp "\temp.zip"
+
+			; Extract zip file to temporal folder
+			shell := ComObjCreate("Shell.Application")
+
+			; Make backup of current folder
+			if !Instr(FileExist(Backup_Temp:= A_Temp "\Backup " regexreplace(a_scriptname, "\..*$") " - " StrReplace(loVersion,".","_")),"D")
+				FileCreateDir, % Backup_Temp
+			else
+			{
+				FileDelete, % Backup_Temp
+				FileCreateDir, % Backup_Temp
+			}
+			; Gui +OwnDialogs
+			MsgBox 0x34, `% this.Name " - " "New Update Available", Last Chance to abort Update.`n`n(also remove this once you're done debugging the updater)`nDo you want to continue the Update?
+			IfMsgBox Yes 
+			{
+				Err:=CopyFolderAndContainingFiles(A_ScriptDir, Backup_Temp,1) 		;; backup current folder with all containing files to the backup pos. 
+				, Err2:=CopyFolderAndContainingFiles(Backup_Temp ,A_ScriptDir,0) 	;; and then copy over the backup into the script folder as well
+				, items1 := shell.Namespace(file).Items								;; and copy over any files not contained in a subfolder
+				for item_ in items1 
+				{
+
+					;; if DataOnly ;; figure out how to detect and skip files based on directory, so that one can skip updating script and settings and so on, and only query the scripts' data-files 
+					root := item_.Path
+					, items:=shell.Namespace(root).Items
+					for item in items
+						shell.NameSpace(A_ScriptDir).CopyHere(item, 0x14)
+				}
+				MsgBox, 0x40040,,Update Finished
+				FileRemoveDir, % Backup_Temp,1
+				FileRemoveDir, % Update_Temp,1
+				reload
+			}
+			Else IfMsgBox No
+			{	; no update, cleanup the previously downloaded files from the tmp
+				MsgBox, 0x40040,,Update Aborted
+				FileRemoveDir, % Backup_Temp,1
+				FileRemoveDir, % Update_Temp,1
+
+			}
+			if (err1 || err2)
+			{
+				;; todo: catch error
+			}
+		}
+		
 	}
 
 	
@@ -1075,7 +1081,7 @@ licenseButtonCancel(CtrlHwnd, GuiEvent, EventInfo, ErrLevel:="")
 }
 
 
-CopyFilesAndFolders(SourcePattern, DestinationFolder, DoOverwrite = false)
+CopyFolderAndContainingFiles(SourcePattern, DestinationFolder, DoOverwrite = false)
 {
 	; Copies all files and folders matching SourcePattern into the folder named DestinationFolder and
 	; returns the number of files/folders that could not be copied.
