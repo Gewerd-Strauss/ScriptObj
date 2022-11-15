@@ -76,7 +76,8 @@ finally, make sure toingest 'CreditsRaw' into the 'credits'-field of the templat
 ; CreditsRaw=
 ; (LTRIM
 ; author1   -		 snippetName1		   		  			-	URL1
-; Gewerd Strauss		- snippetName2|SnippetName3 (both at the same URL)								-	/
+; Gewerd S, original by RaptorX -  						    - https://github.com/Gewerd-Strauss/ScriptObj/blob/master/ScriptObj.ahk, https://github.com/RaptorX/ScriptObj/blob/master/ScriptObj.ahk
+; Gewerd Strauss		- scriptObject						-	/
 ; )
 ; FileGetTime, ModDate,%A_ScriptFullPath%,M
 ; FileGetTime, CrtDate,%A_ScriptFullPath%,C
@@ -141,7 +142,7 @@ class script
         ,authorlink   := ""
         ,email        := ""
         ,credits      := ""
-        ,creditslink  := ""
+        ,creditslink  := ""°
         ,crtdate      := ""
         ,moddate      := ""
         ,homepagetext := ""
@@ -180,7 +181,7 @@ class script
 		        Remote version file to be validated against.
 		rfile - Remote File
 		        Script file to be downloaded and installed if a new version is found.
-		        Should be a zip file that will be unzipped by the function
+		        Should be a zip file that w°ll be unzipped by the function
 
 		Notes:
 		The versioning file should only contain a version string and nothing else.
@@ -191,7 +192,7 @@ class script
 
 		For more information about SemVer and its specs click here: <https://semver.org/>
 	*/
-	Update(vfile:="", rfile:="",bSilentCheck:=false,Backup:=true)
+	Update(vfile:="", rfile:="",bSilentCheck:=false,Backup:=true,DataOnly:=false)
 	{
 		; Error Codes
 		static ERR_INVALIDVFILE := 1
@@ -255,7 +256,13 @@ class script
 
 		; Download remote version file
 		http.Open("GET", vfile, true)
-		http.Send(), http.WaitForResponse()
+		http.Send()
+		try
+			http.WaitForResponse(1)
+		catch
+		{
+
+		}
 
 		if !(http.responseText)
 		{
@@ -382,7 +389,7 @@ class script
 				for item_ in items1 
 				{
 
-					
+					;; if DataOnly ;; figure out how to detect and skip files based on directory, so that one can skip updating script and settings and so on, and only query the scripts' data-files 
 					root := item_.Path
 					, items:=shell.Namespace(root).Items
 					for item in items
@@ -677,21 +684,60 @@ class script
 			; Clipboard:=html
 			if IsObject(credits)  
 			{
-				if (credits.Count()>0)
+				if (1<0)
 				{
-					CreditsAssembly:="credits for used code:`n"
-					for k,v in credits
+
+					if (credits.Count()>0)
 					{
-						; if Instr()
-						if (k="")
-							continue
-						if (strsplit(v,"|").2="")
-							CreditsAssembly.="<p>" k " - " strsplit(v,"|").1 "`n"
-						else
-							CreditsAssembly.="<p><a href=" """" strsplit(v,"|").2 """" ">" k " - " strsplit(v,"|").1 "</a></p>`n"
+						CreditsAssembly:="credits for used code:`n"
+						for k,v in credits
+						{
+							if (k="")
+								continue
+							if (strsplit(v,"|").2="")
+								CreditsAssembly.="<p>" k " - " strsplit(v,"|").1 "`n"
+							else
+								CreditsAssembly.="<p><a href=" """" strsplit(v,"|").2 """" ">" k " - " strsplit(v,"|").1 "</a></p>`n"
+						}
+						html.=CreditsAssembly
+						; Clipboard:=html
 					}
-					html.=CreditsAssembly
-					; Clipboard:=html
+				}
+				else
+				{
+					if (credits.Count()>0)
+					{
+						CreditsAssembly:="credits for used code:`n"
+						for Author,v in credits
+						{
+							if (k="")
+								continue
+							if (strsplit(v,"|").2="")
+								CreditsAssembly.="<p>" Author " - " strsplit(v,"|").1 "`n"
+							else
+							{
+								Name:=strsplit(v,"|").1
+								Credit_URL:=strsplit(v,"|").2
+								if Instr(Author,",") && Instr(Credit_URL,",")
+								{
+									tmpAuthors:=""
+									AllCurrentAuthors:=strsplit(Author,",")
+									for s,w in strsplit(Credit_URL,",")
+									{
+										currentAuthor:=AllCurrentAuthors[s]
+										tmpAuthors.="<a href=" """" w """" ">" trim(currentAuthor) "</a>"
+										if (s!=AllCurrentAuthors.MaxIndex())
+											tmpAuthors.=", "
+									}
+									CreditsAssembly.="<p>" tmpAuthors "</p> - " Name "`n" ;; figure out how to force this to be on one line, instead of the mess it is right now.
+								}
+								else
+									CreditsAssembly.="<p><a href=" """" Credit_URL """" ">" Author " - " Name "</a></p>`n"
+							}
+						}
+						html.=CreditsAssembly
+						; Clipboard:=html
+					}
 				}
 			}
 			else
@@ -755,7 +801,7 @@ class script
 		gui aboutScript:new, +alwaysontop +toolwindow, % "About " this.name
 		gui margin, 2
 		gui color, white
-		gui add, activex, w300 r%axHight% vdoc, htmlFile
+		gui add, activex, w500 r%axHight% vdoc, htmlFile
 		gui add, button, w75 x%btnxPos% gaboutClose, % "&Close"
 		doc.write(html)
 		gui show, AutoSize
