@@ -1,9 +1,9 @@
-﻿; from RaptorX https://github.com/RaptorX/ScriptObj/blob/master/ScriptObj.ahk
+; from RaptorX https://github.com/RaptorX/ScriptObj/blob/master/ScriptObj.ahk
 /**
  * ============================================================================ *
  * @Author           : RaptorX <graptorx@gmail.com>
  * @Script Name      : Script Object
- * @Script Version   : 0.26.3
+ * @Script Version   : 0.27.3
  * @Homepage         :
  *
  * @Creation Date    : November 09, 2020
@@ -76,7 +76,8 @@ finally, make sure toingest 'CreditsRaw' into the 'credits'-field of the templat
 ; CreditsRaw=
 ; (LTRIM
 ; author1   -		 snippetName1		   		  			-	URL1
-; Gewerd Strauss		- snippetName2|SnippetName3 (both at the same URL)								-	/
+; author2,author3   -		 snippetName1		   		  			-	URL2,URL3
+; ScriptObj  							- Gewerd S, original by RaptorX							    - https://github.com/Gewerd-Strauss/ScriptObj/blob/master/ScriptObj.ahk, https://github.com/RaptorX/ScriptObj/blob/master/ScriptObj.ahk
 ; )
 ; FileGetTime, ModDate,%A_ScriptFullPath%,M
 ; FileGetTime, CrtDate,%A_ScriptFullPath%,C
@@ -104,10 +105,12 @@ finally, make sure toingest 'CreditsRaw' into the 'credits'-field of the templat
 ;                     ,donateLink	  : ""
 ;                     ,resfolder    : A_ScriptDir "\res"
 ;                     ,iconfile	  : ""
+;					  ,reqInternet: false
 ; 					,rfile  	  : "https://github.com/Gewerd-Strauss/REPOSITORY_NAME/archive/refs/heads/BRANCH_NAME.zip"
 ; 					,vfile_raw	  : "https://raw.githubusercontent.com/Gewerd-Strauss/REPOSITORY_NAME/BRANCH_NAME/version.ini" 
 ; 					,vfile 		  : "https://raw.githubusercontent.com/Gewerd-Strauss/REPOSITORY_NAME/BRANCH_NAME/version.ini" 
 ; 					,vfile_local  : A_ScriptDir "\version.ini" 
+;					,DataFolder:	A_ScriptDir ""
 ;                     ,config:		[]
 ; 					,configfile   : A_ScriptDir "\INI-Files\" regexreplace(A_ScriptName, "\.\w+") ".ini"
 ;                     ,configfolder : A_ScriptDir "\INI-Files"}
@@ -123,7 +126,7 @@ finally, make sure toingest 'CreditsRaw' into the 'credits'-field of the templat
 		script.Debug(script.error.Level,script.error.Label,script.error.Message,script.error.AddInfo,script.error.Vars)
 */
 ; script.Load()
-; , script.Update(,,) ;; DO NOT ACTIVATE THISLINE UNTIL YOU DUMBO HAS FIXED THE DAMN METHOD. God damn it.
+; , script.Update(,,,,,)  ;; DO NOT ACTIVATE THISLINE UNTIL YOU DUMBO HAS FIXED THE DAMN METHOD. God damn it.
 ; /Template_End
 class script
 {
@@ -139,7 +142,7 @@ class script
         ,authorlink   := ""
         ,email        := ""
         ,credits      := ""
-        ,creditslink  := ""
+        ,creditslink  := ""°
         ,crtdate      := ""
         ,moddate      := ""
         ,homepagetext := ""
@@ -166,6 +169,67 @@ class script
 		,dbgLevel     := this.DBG_NONE
 		,versionScObj := "0.21.3"
 
+	/**
+
+		Function: SetIcon
+		 TO BE DONE: Sets iconfile as tray-icon if applicable
+
+		Parameters:
+		Option - Option to execute
+		        Set 'true' to set this.res "\" this.iconfile as icon
+				Set 'false' to set icon back to ahk's default icon
+				Set '-1' to hide tray-icon
+				Set 'pathToIconFile' to specify an icon from a specific path
+				Set 'dll,iconNumber' to use the icon extracted from the given dll - NOT IMPLEMENTED YET.
+		rfile - Remote File
+		        Script file to be downloaded and installed if a new version is found.
+		        Should be a zip file that w°ll be unzipped by the function
+
+		Notes:
+		The versioning file should only contain a version string and nothing else.
+		The matching will be performed against a SemVer format and only the three
+		major components will be taken into account.
+
+		e.g. '1.0.0'
+
+		For more information about SemVer and its specs click here: <https://semver.org/>
+	*/
+	SetIcon(Param:=true)
+	{
+		if (Param=true)
+		{ ;; set script.iconfile as icon, shows icon
+			Menu, Tray, Icon,% this.resfolder "\" this.iconfile ;; this does not work for unknown reasons
+			; menu, tray, icon, hide
+			;; menu, taskbar, icon, % this.resfolder "/" this.iconfilea
+		}
+		else if (Param=false)
+		{ ;; set icon to default ahk icon, shows icon
+
+			ttip_ScriptObj("Figure out how to extract autohotkey's default icon to reuse it.")
+			;; get ahk's default icon, then set it.
+			;Menu, Tray, Icon, ???.dll, ???1
+		}
+		else if (Param=-1)
+		{ ;; hide icon
+			ttip_ScriptObj("Figure out how to hide autohotkey's icon mid-run")
+			menu, tray, icon, hide
+
+		}
+		else ;; Param=path to custom icon, not set up as script.iconfile
+		{ ;; set "Param" as path to iconfile
+			;; check out GetWindowIcon & SetWindowIcon in AHK_Library
+			if !FileExist(Param)
+			{
+			try
+				throw exception("Invalid  Icon-Path '" Param "'. Check the path provided.","script.SetIcon()","T")
+			Catch, e
+				msgbox, 8240,% this.Name " > scriptObj -  Invalid ressource-path", % e.Message "`n`nPlease provide a valid path to an existing file. Resuming normal operation."
+			}
+				
+			Menu, Tray, Icon,% Param
+		}
+	}
+
 
 	/**
 		Function: Update
@@ -178,7 +242,7 @@ class script
 		        Remote version file to be validated against.
 		rfile - Remote File
 		        Script file to be downloaded and installed if a new version is found.
-		        Should be a zip file that will be unzipped by the function
+		        Should be a zip file that w°ll be unzipped by the function
 
 		Notes:
 		The versioning file should only contain a version string and nothing else.
@@ -189,7 +253,7 @@ class script
 
 		For more information about SemVer and its specs click here: <https://semver.org/>
 	*/
-	Update(vfile:="", rfile:="",bSilentCheck:=false,Backup:=true)
+	Update(vfile:="", rfile:="",bSilentCheck:=false,Backup:=true,DataOnly:=false)
 	{
 		; Error Codes
 		static ERR_INVALIDVFILE := 1
@@ -202,179 +266,214 @@ class script
 			,ERR_USRCANCEL          := 8
 		vfile:=(vfile=="")?this.vfile:vfile
 		,rfile:=(rfile=="")?this.rfile:rfile
+		if RegexMatch(vfile,"\d+") || RegexMatch(rfile,"\d+")	 ;; allow skipping of the routine by simply returning here
+			return
+		; Error Codes
+		if (vfile="") 											;; disregard empty vfiles
+			return
+		if (!regexmatch(vfile, "^((?:http(?:s)?|ftp):\/\/)?((?:[a-z0-9_\-]+\.)+.*$)"))
+			exception({code: ERR_INVALIDVFILE, msg: "Invalid URL`n`nThe version file parameter must point to a 	valid URL."})
+		if  (regexmatch(vfile, "(REPOSITORY_NAME|BRANCH_NAME)"))
+			Return												;; let's not throw an error when this happens because fixing it is irrelevant to development in 95% of all cases
+
+		; This function expects a ZIP file
+		if (!regexmatch(rfile, "\.zip"))
+			exception({code: ERR_INVALIDRFILE, msg: "Invalid Zip`n`nThe remote file parameter must point to a zip file."})
+
+		; Check if we are connected to the internet
+		http := comobjcreate("WinHttp.WinHttpRequest.5.1")
+		, http.Open("GET", "https://www.google.com", true)
+		, http.Send()
+		try
+			http.WaitForResponse(1)
+		catch e
 		{
-			if RegexMatch(vfile,"\d+") || RegexMatch(rfile,"\d+")	 ;; allow skipping of the routine by simply returning here
+			bScriptObj_IsConnected:=ScriptObj_IsConnected()
+			if !bScriptObj_IsConnected && !this.reqInternet && (this.reqInternet!="") ;; if internet not required - just abort update checl
+			{ ;; TODO: replace with msgbox-query asking to start script or not - 
+				ttip_ScriptObj(script.name ": No internet connection established - aborting update check. Continuing Script Execution",,,,,,,,18)
 				return
-			; Error Codes
-			if (vfile="") 											;; disregard empty vfiles
-				return
-			if (!regexmatch(vfile, "^((?:http(?:s)?|ftp):\/\/)?((?:[a-z0-9_\-]+\.)+.*$)"))
-				exception({code: ERR_INVALIDVFILE, msg: "Invalid URL`n`nThe version file parameter must point to a 	valid URL."})
-			if  (regexmatch(vfile, "(REPOSITORY_NAME|BRANCH_NAME)"))
-				Return												;; let's not throw an error when this happens because fixing it is irrelevant to development in 95% of all cases
-
-			; This function expects a ZIP file
-			if (!regexmatch(rfile, "\.zip"))
-				exception({code: ERR_INVALIDRFILE, msg: "Invalid Zip`n`nThe remote file parameter must point to a zip file."})
-
-			; Check if we are connected to the internet
-			http := comobjcreate("WinHttp.WinHttpRequest.5.1")
-			, http.Open("GET", "https://www.google.com", true)
-			, http.Send()
-			try
-				http.WaitForResponse(1)
-			catch e
-				throw {code: ERR_NOCONNECT, msg: e.message}
-			if (!bSilentCheck)
-					Progress, 50, 50/100, % "Checking for updates", % "Updating"
-
-			; Download remote version file
-			http.Open("GET", vfile, true)
-			http.Send(), http.WaitForResponse()
-
-			if !(http.responseText)
-			{
-				Progress, OFF
-				try
-					throw exception("There was an error trying to download the ZIP file for the update.`n","script.Update()","The server did not respond.")
-				Catch, e
-					msgbox, 8240,% this.Name " -  No response from server", % e.Message "`n`nCheck again later`, or contact the author/provider. Script will resume normal operation."
 			}
-			regexmatch(this.version, "\d+\.\d+\.\d+", loVersion)		;; as this.version is not updated automatically, instead read the local version file
-			
-			; FileRead, loVersion,% A_ScriptDir "\version.ini"
-			d:=http.responseText
-			regexmatch(http.responseText, "\d+\.\d+\.\d+", remVersion)
-			if (!bSilentCheck)
+			if !bScriptObj_IsConnected && this.reqInternet ;; if internet is required - abort script
 			{
-				Progress, 100, 100/100, % "Checking for updates", % "Updating"
-				sleep 500 	; allow progress to update
+					gui, +OwnDialogs
+					OnMessage(0x44, "OnMsgBoxScriptObj")
+					MsgBox 0x11,% this.name " - No internet connection",% "No internet connection could be established. `n`nAs " this.name " requires an active internet connection`, the program will shut down now.`n`n`n`nExiting."
+					OnMessage(0x44, "")
+
+					IfMsgBox OK, {
+						ExitApp
+					} Else IfMsgBox Cancel, {
+						reload
+					}
+					
 			}
+
+				
+		}
+			; throw {code: ERR_NOCONNECT, msg: e.message} ;; TODO: detect if offline
+		if (!bSilentCheck)
+				Progress, 50, 50/100, % "Checking for updates", % "Updating"
+
+		; Download remote version file
+		http.Open("GET", vfile, true)
+		http.Send()
+		try
+			http.WaitForResponse(1)
+		catch
+		{
+
+		}
+
+		if !(http.responseText)
+		{
 			Progress, OFF
+			try
+				throw exception("There was an error trying to download the ZIP file for the update.`n","script.Update()","The server did not respond.")
+			Catch, e 
+				msgbox, 8240,% this.Name " > scriptObj -  No response from server", % e.Message "`n`nCheck again later`, or contact the author/provider. Script will resume normal operation."
+		}
+		regexmatch(this.version, "\d+\.\d+\.\d+", loVersion)		;; as this.version is not updated automatically, instead read the local version file
+		
+		; FileRead, loVersion,% A_ScriptDir "\version.ini"
+		d:=http.responseText
+		regexmatch(http.responseText, "\d+\.\d+\.\d+", remVersion)
+		if (!bSilentCheck)
+		{
+			Progress, 100, 100/100, % "Checking for updates", % "Updating"
+			sleep 500 	; allow progress to update
+		}
+		Progress, OFF
 
-			; Make sure SemVer is used
- 			if (!loVersion || !remVersion)
+		; Make sure SemVer is used
+		if (!loVersion || !remVersion)
+		{
+			try
+				throw exception("Invalid version.`n The update-routine of this script works with SemVer.","script.Update()","For more information refer to the documentation in the file`n" )
+			catch, e 
+				msgbox, 8240,% " > scriptObj - Invalid Version", % e.What ":" e.Message "`n`n" e.Extra "'" e.File "'."
+		}
+		; Compare against current stated version
+		ver1 := strsplit(loVersion, ".")
+		, ver2 := strsplit(remVersion, ".")
+		, bRemoteIsGreater:=[0,0,0]
+		, newversion:=false
+		for i1,num1 in ver1
+		{
+			for i2,num2 in ver2
 			{
-				try
-					throw exception("Invalid version.`n The update-routine of this script works with SemVer.","script.Update()","For more information refer to the documentation in the file`n" )
-				catch, e
-					msgbox, 8240,% "Invalid Version", % e.What ":" e.Message "`n`n" e.Extra "'" e.File "'."
-			}
-			; Compare against current stated version
-			ver1 := strsplit(loVersion, ".")
-			, ver2 := strsplit(remVersion, ".")
-			, bRemoteIsGreater:=[0,0,0]
-			, newversion:=false
-			for i1,num1 in ver1
-			{
-				for i2,num2 in ver2
+				if (i1 == i2)
 				{
-					if (i1 == i2)
+					if (num2 > num1)
 					{
-						if (num2 > num1)
-						{
-							bRemoteIsGreater[i1]:=true
-							break
-						}
-						else if (num2 = num1)
-							bRemoteIsGreater[i1]:=false
-						else if (num2 < num1)
-							bRemoteIsGreater[i1]:=-1
+						bRemoteIsGreater[i1]:=true
+						break
 					}
-				}
-			}
-			if (!bRemoteIsGreater[1] && !bRemoteIsGreater[2]) ;; denotes in which position (remVersion>loVersion) → 1, (remVersion=loVersion) → 0, (remVersion<loVersion) → -1 
-				if (bRemoteIsGreater[3] && bRemoteIsGreater[3]!=-1)
-					newversion:=true
-			if (bRemoteIsGreater[1] || bRemoteIsGreater[2])
-				newversion:=true
-			if (bRemoteIsGreater[1]=-1)
-				newversion:=false
-			if (bRemoteIsGreater[2]=-1) && (bRemoteIsGreater[1]!=1)
-				newversion:=false
-			if (!newversion)
-			{
-				if (!bSilentCheck)
-					msgbox, 8256, No new version available, You are using the latest version.`n`nScript will continue running.
-				return
-			}
-			else
-			{
-				; If new version ask user what to do				"C:\Users\CLAUDI~1\AppData\Local\Temp\AHK_LibraryGUI
-				; Yes/No | Icon Question | System Modal
-				msgbox % 0x4 + 0x20 + 0x1000
-					, % "New Update Available"
-					, % "There is a new update available for this application.`n"
-					. "Do you wish to upgrade to v" remVersion "?"
-					, 10	; timeout
-
-				ifmsgbox timeout
-				{
-					try
-						throw exception("The message box timed out.","script.Update()","Script will not be updated.")
-					Catch, e
-						msgbox, 4144,% this.Name " - " "New Update Available" ,   % e.Message "`nNo user-input received.`n`n" e.Extra "`nResuming normal operation now.`n"
-					return
-				}
-				ifmsgbox no
-				{		;; decide if you want to have this or not. 
-					; try
-					; 	throw exception("The user pressed the cancel button.","script.Update()","Script will not be updated.") ;{code: ERR_USRCANCEL, msg: "The user pressed the cancel button."}
-					; catch, e
-					; 	msgbox, 4144,% this.Name " - " "New Update Available" ,   % e.Message "`n`n" e.Extra "`nResuming normal operation now.`n"
-					return
-				}
-
-				; Create temporal dirs
-				ghubname := (InStr(rfile, "github") ? regexreplace(a_scriptname, "\..*$") "-latest\" : "")
-				filecreatedir % Update_Temp := a_temp "\" regexreplace(a_scriptname, "\..*$")
-				filecreatedir % zipDir := Update_Temp "\uzip"
-
-				; ; Create lock file
-				; fileappend % a_now, % lockFile := Update_Temp "\lock"
-
-				; Download zip file
-				urldownloadtofile % rfile, % file:=Update_Temp "\temp.zip"
-
-				; Extract zip file to temporal folder
-				shell := ComObjCreate("Shell.Application")
-
-				; Make backup of current folder
-				if !Instr(FileExist(Backup_Temp:= A_Temp "\Backup " regexreplace(a_scriptname, "\..*$") " - " StrReplace(loVersion,".","_")),"D")
-					FileCreateDir, % Backup_Temp
-				else
-				{
-					FileDelete, % Backup_Temp
-					FileCreateDir, % Backup_Temp
-				}
-				; Gui +OwnDialogs
-				MsgBox 0x34, `% this.Name " - " "New Update Available", Last Chance to abort Update.`n`n(also remove this once you're done debugging the updater)`nDo you want to continue the Update?
-				IfMsgBox Yes 
-				{
-					Err:=CopyFilesAndFolders(A_ScriptDir, Backup_Temp,1)
-					, Err2:=CopyFilesAndFolders(Backup_Temp ,A_ScriptDir  ,0)
-					, items1 := shell.Namespace(file).Items
-					for item_ in items1
-					{
-						root := item_.Path
-						, items:=shell.Namespace(root).Items
-						for item in items
-							shell.NameSpace(A_ScriptDir).CopyHere(item, 0x14)
-					}
-					MsgBox, 0x40040,,Update Finished
-					FileRemoveDir, % Backup_Temp,1
-					FileRemoveDir, % Update_Temp,1
-					reload
-				}
-				Else IfMsgBox No
-				{	; no update, cleanup the previously downloaded files from the tmp
-					MsgBox, 0x40040,,Update Aborted
-					FileRemoveDir, % Backup_Temp,1
-					FileRemoveDir, % Update_Temp,1
-
+					else if (num2 = num1)
+						bRemoteIsGreater[i1]:=false
+					else if (num2 < num1)
+						bRemoteIsGreater[i1]:=-1
 				}
 			}
 		}
+		if (!bRemoteIsGreater[1] && !bRemoteIsGreater[2]) ;; denotes in which position (remVersion>loVersion) → 1, (remVersion=loVersion) → 0, (remVersion<loVersion) → -1 
+			if (bRemoteIsGreater[3] && bRemoteIsGreater[3]!=-1)
+				newversion:=true
+		if (bRemoteIsGreater[1] || bRemoteIsGreater[2])
+			newversion:=true
+		if (bRemoteIsGreater[1]=-1)
+			newversion:=false
+		if (bRemoteIsGreater[2]=-1) && (bRemoteIsGreater[1]!=1)
+			newversion:=false
+		if (!newversion)
+		{
+			if (!bSilentCheck)
+				msgbox, 8256, No new version available, You are using the latest version.`n`nScript will continue running.
+			return
+		}
+		else
+		{
+			; If new version ask user what to do				"C:\Users\CLAUDI~1\AppData\Local\Temp\AHK_LibraryGUI
+			; Yes/No | Icon Question | System Modal
+			msgbox % 0x4 + 0x20 + 0x1000
+				, % "New Update Available"
+				, % "There is a new update available for this application.`n"
+				. "Do you wish to upgrade to v" remVersion "?"
+				, 10	; timeout
+
+			ifmsgbox timeout
+			{
+				try
+					throw exception("The message box timed out.","script.Update()","Script will not be updated.")
+				Catch, e
+					msgbox, 4144,% this.Name " - " "New Update Available" ,   % e.Message "`nNo user-input received.`n`n" e.Extra "`nResuming normal operation now.`n"
+				return
+			}
+			ifmsgbox no
+			{		;; decide if you want to have this or not. 
+				; try
+				; 	throw exception("The user pressed the cancel button.","script.Update()","Script will not be updated.") ;{code: ERR_USRCANCEL, msg: "The user pressed the cancel button."}
+				; catch, e
+				; 	msgbox, 4144,% this.Name " - " "New Update Available" ,   % e.Message "`n`n" e.Extra "`nResuming normal operation now.`n"
+				return
+			}
+
+			; Create temporal dirs
+			ghubname := (InStr(rfile, "github") ? regexreplace(a_scriptname, "\..*$") "-latest\" : "")
+			filecreatedir % Update_Temp := a_temp "\" regexreplace(a_scriptname, "\..*$")
+			filecreatedir % zipDir := Update_Temp "\uzip"
+
+			; ; Create lock file
+			; fileappend % a_now, % lockFile := Update_Temp "\lock"
+
+			; Download zip file
+			urldownloadtofile % rfile, % file:=Update_Temp "\temp.zip"
+
+			; Extract zip file to temporal folder
+			shell := ComObjCreate("Shell.Application")
+
+			; Make backup of current folder
+			if !Instr(FileExist(Backup_Temp:= A_Temp "\Backup " regexreplace(a_scriptname, "\..*$") " - " StrReplace(loVersion,".","_")),"D")
+				FileCreateDir, % Backup_Temp
+			else
+			{
+				FileDelete, % Backup_Temp
+				FileCreateDir, % Backup_Temp
+			}
+			; Gui +OwnDialogs
+			MsgBox 0x34, `% this.Name " - " "New Update Available", Last Chance to abort Update.`n`n(also remove this once you're done debugging the updater)`nDo you want to continue the Update?
+			IfMsgBox Yes 
+			{
+				Err:=CopyFolderAndContainingFiles(A_ScriptDir, Backup_Temp,1) 		;; backup current folder with all containing files to the backup pos. 
+				, Err2:=CopyFolderAndContainingFiles(Backup_Temp ,A_ScriptDir,0) 	;; and then copy over the backup into the script folder as well
+				, items1 := shell.Namespace(file).Items								;; and copy over any files not contained in a subfolder
+				for item_ in items1 
+				{
+
+					;; if DataOnly ;; figure out how to detect and skip files based on directory, so that one can skip updating script and settings and so on, and only query the scripts' data-files 
+					root := item_.Path
+					, items:=shell.Namespace(root).Items
+					for item in items
+						shell.NameSpace(A_ScriptDir).CopyHere(item, 0x14)
+				}
+				MsgBox, 0x40040,,Update Finished
+				FileRemoveDir, % Backup_Temp,1
+				FileRemoveDir, % Update_Temp,1
+				reload
+			}
+			Else IfMsgBox No
+			{	; no update, cleanup the previously downloaded files from the tmp
+				MsgBox, 0x40040,,Update Aborted
+				FileRemoveDir, % Backup_Temp,1
+				FileRemoveDir, % Update_Temp,1
+
+			}
+			if (err1 || err2)
+			{
+				;; todo: catch error
+			}
+		}
+		
 	}
 
 	
@@ -637,7 +736,7 @@ class script
 				Credits:={}
 				for k,v in CreditsLines
 				{
-					if ((InStr(v,"author1") && InStr(v,"snippetName1") && InStr(v,"URL1")) || (InStr(v,"snippetName2|snippetName3")))
+					if ((InStr(v,"author1") && InStr(v,"snippetName1") && InStr(v,"URL1")) || (InStr(v,"snippetName2|snippetName3")) || (InStr(v,"author2,author3") && Instr(v, "URL2,URL3")))
 						continue
 					val:=strsplit(strreplace(v,"`t"," ")," - ")
 					Credits[Trim(val.2)]:=Trim(val.1) "|" Trim((strlen(val.3)>5?val.3:""))
@@ -646,21 +745,60 @@ class script
 			; Clipboard:=html
 			if IsObject(credits)  
 			{
-				if (credits.Count()>0)
+				if (1<0)
 				{
-					CreditsAssembly:="credits for used code:`n"
-					for k,v in credits
+
+					if (credits.Count()>0)
 					{
-						; if Instr()
-						if (k="")
-							continue
-						if (strsplit(v,"|").2="")
-							CreditsAssembly.="<p>" k " - " strsplit(v,"|").1 "`n"
-						else
-							CreditsAssembly.="<p><a href=" """" strsplit(v,"|").2 """" ">" k " - " strsplit(v,"|").1 "</a></p>`n"
+						CreditsAssembly:="credits for used code:`n"
+						for k,v in credits
+						{
+							if (k="")
+								continue
+							if (strsplit(v,"|").2="")
+								CreditsAssembly.="<p>" k " - " strsplit(v,"|").1 "`n"
+							else
+								CreditsAssembly.="<p><a href=" """" strsplit(v,"|").2 """" ">" k " - " strsplit(v,"|").1 "</a></p>`n"
+						}
+						html.=CreditsAssembly
+						; Clipboard:=html
 					}
-					html.=CreditsAssembly
-					; Clipboard:=html
+				}
+				else
+				{
+					if (credits.Count()>0)
+					{
+						CreditsAssembly:="credits for used code:`n"
+						for Author,v in credits
+						{
+							if (k="")
+								continue
+							if (strsplit(v,"|").2="")
+								CreditsAssembly.="<p>" Author " - " strsplit(v,"|").1 "`n"
+							else
+							{
+								Name:=strsplit(v,"|").1
+								Credit_URL:=strsplit(v,"|").2
+								if Instr(Author,",") && Instr(Credit_URL,",")
+								{
+									tmpAuthors:=""
+									AllCurrentAuthors:=strsplit(Author,",")
+									for s,w in strsplit(Credit_URL,",")
+									{
+										currentAuthor:=AllCurrentAuthors[s]
+										tmpAuthors.="<a href=" """" w """" ">" trim(currentAuthor) "</a>"
+										if (s!=AllCurrentAuthors.MaxIndex())
+											tmpAuthors.=", "
+									}
+									CreditsAssembly.="<p>" tmpAuthors "</p> - " Name "`n" ;; figure out how to force this to be on one line, instead of the mess it is right now.
+								}
+								else
+									CreditsAssembly.="<p><a href=" """" Credit_URL """" ">" Author " - " Name "</a></p>`n"
+							}
+						}
+						html.=CreditsAssembly
+						; Clipboard:=html
+					}
 				}
 			}
 			else
@@ -724,7 +862,7 @@ class script
 		gui aboutScript:new, +alwaysontop +toolwindow, % "About " this.name
 		gui margin, 2
 		gui color, white
-		gui add, activex, w300 r%axHight% vdoc, htmlFile
+		gui add, activex, w500 r%axHight% vdoc, htmlFile
 		gui add, button, w75 x%btnxPos% gaboutClose, % "&Close"
 		doc.write(html)
 		gui show, AutoSize
@@ -916,9 +1054,9 @@ class script
 				INI_File:=SubStr(INI_File,1,StrLen(INI_File)-4) ;		 and remove the last instance
 		}
 			if !FileExist(INI_File ".ini") ;; create new INI_File if not existing
-			{
+			{ 
 				if !bSilentReturn
-					msgbox, 8240,% this.Name " -  No Save File found", % "No save file was found.`nPlease reinitialise settings if possible."
+					msgbox, 8240,% this.Name " > scriptObj -  No Save File found", % "No save file was found.`nPlease reinitialise settings if possible."
 				return false
 			}
 			SplitPath, INI_File, INI_File_File, INI_File_Dir, INI_File_Ext, INI_File_NNE, INI_File_Drive
@@ -944,7 +1082,6 @@ class script
 			if A_WorkingDir!=OrigWorkDir
 				SetWorkingDir, %OrigWorkDir%
 			this.config:=Result
-			t:=this.config.Count()
 		return (this.config.Count()?true:-1) ; returns true if this.config contains values. returns -1 otherwhise to distinguish between a missing config file and an empty config file
 	}
 	Save(INI_File:="")
@@ -1051,7 +1188,7 @@ licenseButtonCancel(CtrlHwnd, GuiEvent, EventInfo, ErrLevel:="")
 }
 
 
-CopyFilesAndFolders(SourcePattern, DestinationFolder, DoOverwrite = false)
+CopyFolderAndContainingFiles(SourcePattern, DestinationFolder, DoOverwrite = false)
 {
 	; Copies all files and folders matching SourcePattern into the folder named DestinationFolder and
 	; returns the number of files/folders that could not be copied.
@@ -1213,3 +1350,13 @@ ScriptObj_Obj2Str(Obj,FullPath:=1,BottomBlank:=0){
 	}}
 	return String Blank
 }
+ScriptObj_IsConnected(URL="https://autohotkey.com/boards/") {                            	;-- Returns true if there is an available internet connection
+	return DllCall("Wininet.dll\InternetCheckConnection", "Str", URL,"UInt", 1, "UInt",0, "UInt")
+}
+OnMsgBoxScriptObj() {
+						DetectHiddenWindows, On
+						Process, Exist
+						If (WinExist("ahk_class #32770 ahk_pid " . ErrorLevel)) {
+							ControlSetText Button2, Retry
+						}
+					}
