@@ -76,8 +76,8 @@ finally, make sure toingest 'CreditsRaw' into the 'credits'-field of the templat
 ; CreditsRaw=
 ; (LTRIM
 ; author1   -		 snippetName1		   		  			-	URL1
-; Gewerd S, original by RaptorX -  						    - https://github.com/Gewerd-Strauss/ScriptObj/blob/master/ScriptObj.ahk, https://github.com/RaptorX/ScriptObj/blob/master/ScriptObj.ahk
-; Gewerd Strauss		- scriptObject						-	/
+; author2,author3   -		 snippetName1		   		  			-	URL2,URL3
+; ScriptObj  							- Gewerd S, original by RaptorX							    - https://github.com/Gewerd-Strauss/ScriptObj/blob/master/ScriptObj.ahk, https://github.com/RaptorX/ScriptObj/blob/master/ScriptObj.ahk
 ; )
 ; FileGetTime, ModDate,%A_ScriptFullPath%,M
 ; FileGetTime, CrtDate,%A_ScriptFullPath%,C
@@ -168,6 +168,67 @@ class script
 		,vfile		  := ""
 		,dbgLevel     := this.DBG_NONE
 		,versionScObj := "0.21.3"
+
+	/**
+
+		Function: SetIcon
+		 TO BE DONE: Sets iconfile as tray-icon if applicable
+
+		Parameters:
+		Option - Option to execute
+		        Set 'true' to set this.res "\" this.iconfile as icon
+				Set 'false' to set icon back to ahk's default icon
+				Set '-1' to hide tray-icon
+				Set 'pathToIconFile' to specify an icon from a specific path
+				Set 'dll,iconNumber' to use the icon extracted from the given dll - NOT IMPLEMENTED YET.
+		rfile - Remote File
+		        Script file to be downloaded and installed if a new version is found.
+		        Should be a zip file that w°ll be unzipped by the function
+
+		Notes:
+		The versioning file should only contain a version string and nothing else.
+		The matching will be performed against a SemVer format and only the three
+		major components will be taken into account.
+
+		e.g. '1.0.0'
+
+		For more information about SemVer and its specs click here: <https://semver.org/>
+	*/
+	SetIcon(Param:=true)
+	{
+		if (Param=true)
+		{ ;; set script.iconfile as icon, shows icon
+			Menu, Tray, Icon,% this.resfolder "\" this.iconfile ;; this does not work for unknown reasons
+			; menu, tray, icon, hide
+			;; menu, taskbar, icon, % this.resfolder "/" this.iconfilea
+		}
+		else if (Param=false)
+		{ ;; set icon to default ahk icon, shows icon
+
+			ttip_ScriptObj("Figure out how to extract autohotkey's default icon to reuse it.")
+			;; get ahk's default icon, then set it.
+			;Menu, Tray, Icon, ???.dll, ???1
+		}
+		else if (Param=-1)
+		{ ;; hide icon
+			ttip_ScriptObj("Figure out how to hide autohotkey's icon mid-run")
+			menu, tray, icon, hide
+
+		}
+		else ;; Param=path to custom icon, not set up as script.iconfile
+		{ ;; set "Param" as path to iconfile
+			;; check out GetWindowIcon & SetWindowIcon in AHK_Library
+			if !FileExist(Param)
+			{
+			try
+				throw exception("Invalid  Icon-Path '" Param "'. Check the path provided.","script.SetIcon()","T")
+			Catch, e
+				msgbox, 8240,% this.Name " > scriptObj -  Invalid ressource-path", % e.Message "`n`nPlease provide a valid path to an existing file. Resuming normal operation."
+			}
+				
+			Menu, Tray, Icon,% Param
+		}
+	}
 
 
 	/**
@@ -269,8 +330,8 @@ class script
 			Progress, OFF
 			try
 				throw exception("There was an error trying to download the ZIP file for the update.`n","script.Update()","The server did not respond.")
-			Catch, e
-				msgbox, 8240,% this.Name " -  No response from server", % e.Message "`n`nCheck again later`, or contact the author/provider. Script will resume normal operation."
+			Catch, e 
+				msgbox, 8240,% this.Name " > scriptObj -  No response from server", % e.Message "`n`nCheck again later`, or contact the author/provider. Script will resume normal operation."
 		}
 		regexmatch(this.version, "\d+\.\d+\.\d+", loVersion)		;; as this.version is not updated automatically, instead read the local version file
 		
@@ -289,8 +350,8 @@ class script
 		{
 			try
 				throw exception("Invalid version.`n The update-routine of this script works with SemVer.","script.Update()","For more information refer to the documentation in the file`n" )
-			catch, e
-				msgbox, 8240,% "Invalid Version", % e.What ":" e.Message "`n`n" e.Extra "'" e.File "'."
+			catch, e 
+				msgbox, 8240,% " > scriptObj - Invalid Version", % e.What ":" e.Message "`n`n" e.Extra "'" e.File "'."
 		}
 		; Compare against current stated version
 		ver1 := strsplit(loVersion, ".")
@@ -675,7 +736,7 @@ class script
 				Credits:={}
 				for k,v in CreditsLines
 				{
-					if ((InStr(v,"author1") && InStr(v,"snippetName1") && InStr(v,"URL1")) || (InStr(v,"snippetName2|snippetName3")))
+					if ((InStr(v,"author1") && InStr(v,"snippetName1") && InStr(v,"URL1")) || (InStr(v,"snippetName2|snippetName3")) || (InStr(v,"author2,author3") && Instr(v, "URL2,URL3")))
 						continue
 					val:=strsplit(strreplace(v,"`t"," ")," - ")
 					Credits[Trim(val.2)]:=Trim(val.1) "|" Trim((strlen(val.3)>5?val.3:""))
@@ -993,9 +1054,9 @@ class script
 				INI_File:=SubStr(INI_File,1,StrLen(INI_File)-4) ;		 and remove the last instance
 		}
 			if !FileExist(INI_File ".ini") ;; create new INI_File if not existing
-			{
+			{ 
 				if !bSilentReturn
-					msgbox, 8240,% this.Name " -  No Save File found", % "No save file was found.`nPlease reinitialise settings if possible."
+					msgbox, 8240,% this.Name " > scriptObj -  No Save File found", % "No save file was found.`nPlease reinitialise settings if possible."
 				return false
 			}
 			SplitPath, INI_File, INI_File_File, INI_File_Dir, INI_File_Ext, INI_File_NNE, INI_File_Drive
