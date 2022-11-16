@@ -7,7 +7,7 @@
  * @Homepage         :
  *
  * @Creation Date    : November 09, 2020
- * @Modification Date: October 04, 2022
+ * @Modification Date: November 16, 2022
  * @Modification G.S.: 08.2022
  ; @Description Modification G.S.:
     - Load()-method always returns false if File
@@ -177,18 +177,20 @@ class script
 		Parameters:
 		Option - Option to execute
 		        Set 'true' to set this.res "\" this.iconfile as icon
-				Set 'false' to set icon back to ahk's default icon
-				Set '-1' to hide tray-icon
+				Set 'false' to hide tray-icon
+				Set '-1' to set icon back to ahk's default icon
 				Set 'pathToIconFile' to specify an icon from a specific path
 				Set 'dll,iconNumber' to use the icon extracted from the given dll - NOT IMPLEMENTED YET.
-		rfile - Remote File
-		        Script file to be downloaded and installed if a new version is found.
-		        Should be a zip file that w°ll be unzipped by the function
-
-		Notes:
-		The versioning file should only contain a version string and nothing else.
-		The matching will be performed against a SemVer format and only the three
-		major components will be taken into account.
+		
+		Examples:
+		; 
+		; script.SetIcon(0) 									;; hides icon
+		; ttip("custom from script.iconfile",5)
+		script.SetIcon(1)										;; custom from script.iconfile
+		; ttip("reset ahk's default",5)
+		; script.SetIcon(-1)									;; ahk's default icon
+		; ttip("set from path",5)
+		; script.SetIcon(PathToSpecificIcon)					;; sets icon specified by path as icon
 
 		e.g. '1.0.0'
 
@@ -199,20 +201,19 @@ class script
 		if (Param=true)
 		{ ;; set script.iconfile as icon, shows icon
 			Menu, Tray, Icon,% this.resfolder "\" this.iconfile ;; this does not work for unknown reasons
+			menu, tray, Icon
 			; menu, tray, icon, hide
 			;; menu, taskbar, icon, % this.resfolder "/" this.iconfilea
 		}
 		else if (Param=false)
 		{ ;; set icon to default ahk icon, shows icon
 
-			ttip_ScriptObj("Figure out how to extract autohotkey's default icon to reuse it.")
-			;; get ahk's default icon, then set it.
-			;Menu, Tray, Icon, ???.dll, ???1
+			; ttip_ScriptObj("Figure out how to hide autohotkey's icon mid-run")
+			menu, tray, NoIcon
 		}
 		else if (Param=-1)
 		{ ;; hide icon
-			ttip_ScriptObj("Figure out how to hide autohotkey's icon mid-run")
-			menu, tray, icon, hide
+			Menu, Tray, Icon, *
 
 		}
 		else ;; Param=path to custom icon, not set up as script.iconfile
@@ -220,14 +221,16 @@ class script
 			;; check out GetWindowIcon & SetWindowIcon in AHK_Library
 			if !FileExist(Param)
 			{
-			try
-				throw exception("Invalid  Icon-Path '" Param "'. Check the path provided.","script.SetIcon()","T")
-			Catch, e
-				msgbox, 8240,% this.Name " > scriptObj -  Invalid ressource-path", % e.Message "`n`nPlease provide a valid path to an existing file. Resuming normal operation."
+				try
+					throw exception("Invalid  Icon-Path '" Param "'. Check the path provided.","script.SetIcon()","T")
+				Catch, e
+					msgbox, 8240,% this.Name " > scriptObj -  Invalid ressource-path", % e.Message "`n`nPlease provide a valid path to an existing file. Resuming normal operation."
 			}
 				
 			Menu, Tray, Icon,% Param
+			menu, tray, Icon
 		}
+		return
 	}
 
 
