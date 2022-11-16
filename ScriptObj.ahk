@@ -3,7 +3,7 @@
  * ============================================================================ *
  * @Author           : RaptorX <graptorx@gmail.com>
  * @Script Name      : Script Object
- * @Script Version   : 0.26.3
+ * @Script Version   : 0.27.3
  * @Homepage         :
  *
  * @Creation Date    : November 09, 2020
